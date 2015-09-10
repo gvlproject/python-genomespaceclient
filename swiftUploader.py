@@ -99,7 +99,8 @@ if __name__ == "__main__":
             index+=2
         else:
             index+=1
-    objectUrl = "https://"+gsDNS+"/datamanager/v1.0/uploadinfo/"+objectUrl
+    urlPart = objectUrl[objectUrl.index("Home"):]
+    objectUrl = "https://"+gsDNS+"/datamanager/v1.0/uploadinfo/"+urlPart
     u = swiftUploader()
     upJsn = u.requestUpload(gsUser,gsPSW, objectUrl, gsDNS)
     u.upload(upJsn, filePath)

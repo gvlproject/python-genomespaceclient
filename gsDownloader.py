@@ -53,7 +53,8 @@ if __name__ == "__main__":
             index+=2
         else:
             index+=1
-    objectUrl = "https://"+gsDNS+"/datamanager/file/" + objectUrl
+    urlPart = objectUrl[objectUrl.index("Home":)]
+    objectUrl = "https://"+gsDNS+"/datamanager/file/" + urlPart
     d = Downloader()
     d.requestDownload(gsUser,gsPSW, objectUrl, gsDNS, filePath)
 
