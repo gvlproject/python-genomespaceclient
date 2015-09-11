@@ -2,11 +2,14 @@ from gsUploader import *
 import ast
 import os
 import sys
-
+import requests.packages.urllib3.util.ssl_
+requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
+import argparse
 
 class swiftUploader(Uploader):
-    
+
     CHUNK_SIZE = 64*1024*1024
+
     def upload(self, jsnObject, filePath):
         jsonDic = ast.literal_eval(jsnObject)
         if(jsonDic["uploadType"]!="Swift"):
@@ -34,32 +37,35 @@ class swiftUploader(Uploader):
         file.close()
 
     def uploadFile(self, url, token, bytes):
-        
-        
-        opener = urllib2.build_opener(urllib2.HTTPHandler)
-        request = urllib2.Request(url, data=bytes)
-        request.add_header('X-Auth-Token', token)
-        request.add_header('Content-Length',len(bytes))
-        request.get_method = lambda: 'PUT'
-        try:
-            resp = opener.open(request)
-            resp.read()
-            print "Chunk " + url + "uploaded"
-        except urllib2.HTTPError as e:
-            print e.read()
+        r = requests.put(url, headers = { 'X-Auth-Token' : token, 'Content-Length': len(bytes) }, data=bytes)
+        print "Chunk " + url + "uploaded"
+#         opener = urllib2.build_opener(urllib2.HTTPHandler)
+#         request = urllib2.Request(url, data=bytes)
+#         request.add_header('X-Auth-Token', token)
+#         request.add_header('Content-Length',len(bytes))
+#         request.get_method = lambda: 'PUT'
+#         try:
+#             resp = opener.open(request)
+#             resp.read()
+#             print "Chunk " + url + "uploaded"
+#         except urllib2.HTTPError as e:
+#             print e.read()
+
     def uploadManifest(self, url, segmentPath, token):
         bytes = "1"
-        opener = urllib2.build_opener(urllib2.HTTPHandler)
-        request = urllib2.Request(url, data=bytes)
-        request.add_header('X-Auth-Token', token)
-        request.add_header('Content-Length',1)
-        request.add_header('X-Object-Manifest', segmentPath)
-        request.get_method = lambda: 'PUT'
-        try:
-            resp = opener.open(request)
-            print resp.read()
-        except urllib2.HTTPError as e:
-            print e.read()
+        r = requests.put(url, headers = { 'X-Auth-Token' : token, 'Content-Length': len(bytes), 'X-Object-Manifest' : segmentPath }, data=bytes)
+
+#         opener = urllib2.build_opener(urllib2.HTTPHandler)
+#         request = urllib2.Request(url, data=bytes)
+#         request.add_header('X-Auth-Token', token)
+#         request.add_header('Content-Length',1)
+#         request.add_header('X-Object-Manifest', segmentPath)
+#         request.get_method = lambda: 'PUT'
+#         try:
+#             resp = opener.open(request)
+#             print resp.read()
+#         except urllib2.HTTPError as e:
+#             print e.read()
     def generateSortedNumberString(self, num):
         if num < 10:
             return str(num)
@@ -73,38 +79,24 @@ class swiftUploader(Uploader):
 
         return prefix + retVal;
 
-if __name__ == "__main__":
-    objectUrl = ""
-    gsUser = ""
-    gsPSW = ""
-    filePath = ""
-    gsDNS = ""
-    index = 1
-    while(index<len(sys.argv)):
-        #print sys.argv[index]
-        if sys.argv[index]=="url":
-            objectUrl = sys.argv[index+1]
-            index+=2
-        elif sys.argv[index]=="user":
-            gsUser = sys.argv[index+1]
-            index+=2
-        elif sys.argv[index]=="psw":
-            gsPSW = sys.argv[index+1]
-            index+=2
-        elif sys.argv[index]=="file":
-            filePath = sys.argv[index+1]
-            index+=2
-        elif sys.argv[index]=="genomespace":
-            gsDNS = sys.argv[index+1]
-            index+=2
-        else:
-            index+=1
-    urlPart = objectUrl[objectUrl.index("Home"):]
-    objectUrl = "https://"+gsDNS+"/datamanager/v1.0/uploadinfo/"+urlPart
-    u = swiftUploader()
-    upJsn = u.requestUpload(gsUser,gsPSW, objectUrl, gsDNS)
-    u.upload(upJsn, filePath)
 #u = swiftUploader()
 
 #upJsn = u.requestUpload("devtest","devtest", "Home/swift:Demo2/1.lg.txt")
 #u.upload(upJsn, "/Users/yousef/Documents/largefiles/1.lg.txt")
+
+
+def upload_file_to_genomespace(server, user, password, target_url, local_filename):
+    uploader = swiftUploader()
+    upload_request = uploader.requestUpload(user, password, target_url.replace("/datamanager/v1.0/file/", "/datamanager/v1.0/uploadinfo/"), server)
+    uploader.upload(upload_request, local_filename)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--server', type=str, help="Genomespace server name", required=True)
+    parser.add_argument('-u', '--user', type=str, help="Genomespace username", required=True)
+    parser.add_argument('-p', '--password', type=str, help="Genomespace password", required=True)
+    parser.add_argument('-t', '--target_url', help="Genomespace target URI of file to upload", required=True)
+    parser.add_argument('-f', '--file', type=str, help="Local file to upload", required=True)
+    args = parser.parse_args()
+
+    upload_file_to_genomespace(args.server, args.user, args.password, args.target_url, args.file)
