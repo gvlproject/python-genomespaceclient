@@ -5,13 +5,16 @@ requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
 
 
 class Uploader:
+    __metaclass__ = ABCMeta
+    def requestUpload(self, gsUserName, gsPasword, gsURL, gsDNS):
+        print "Uploading: " + gsURL
+        r = requests.get(gsURL, cookies = gsLogin.getGenomeSpaceToken(gsUserName,gsPasword, gsDNS), headers = { 'Content-type': 'application/json' })
+        return r.text
 
-	__metaclass__ = ABCMeta
-
-	def requestUpload(self, gsUserName, gsPasword, gsURL, gsDNS):
-		print "Uploading: " + gsURL
-		r = requests.get(gsURL, cookies = gsLogin.getGenomeSpaceToken(gsUserName,gsPasword, gsDNS), headers = { 'Content-type': 'application/json' })
-		return r.text
+    def requestUpload(self, gsToken, gsURL, gsDNS):
+        print "Uploading: " + gsURL
+        r = requests.get(gsURL, cookies={"gs-token" :gsToken}, headers = { 'Content-type': 'application/json' })
+        return r.text
 #
 #
 # 	def requestUpload(self, gsUserName, gsPasword, gsURL, gsDNS):
