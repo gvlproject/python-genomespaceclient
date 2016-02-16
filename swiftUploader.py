@@ -6,6 +6,10 @@ import requests.packages.urllib3.util.ssl_
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
 import argparse
 
+'''
+    THIS CLASS IS AN OLD WAY TO UPLOAD TO GENOMESPACE WE REPLACED IT WITH SWIFTCLIENTUPLOADER. SEE THE IMPLEMENTATION INSIDE swiftClientUploader.py
+    '''
+
 class swiftUploader(Uploader):
 
     CHUNK_SIZE = 64*1024*1024
