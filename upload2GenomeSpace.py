@@ -16,7 +16,8 @@ def upload_file_to_genomespace_bytoken(server, gsToken, target_url, local_filena
 #    uploader.upload(upload_request, local_filename)
 
 def upload_file_to_genomespace(server, user, password, target_url, local_filename):
-    uploaderType = ""
+    typeReg =re.search('(?<=Home.)\w+', a)
+    uploaderType = typeReg.group(0)
     uploader = uploadFactory.getUploader(uploaderType)
     upload_request = uploader.requestUpload(user, password, target_url.replace("/datamanager/v1.0/file/", "/datamanager/v1.0/uploadinfo/"), server)
     uploader.upload(upload_request, local_filename)
