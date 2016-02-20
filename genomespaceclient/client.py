@@ -47,7 +47,8 @@ class GenomeSpaceClient():
         session.post(url, data=data)
         return session.cookies
 
-    def _api_generic_request(self, request_func, genomespace_url, headers=None):
+    def _api_generic_request(self, request_func, genomespace_url, headers=None,
+                             allow_redirects=True):
         """
         Makes a request to a GenomeSpace API endpoint, after adding some
         standard headers, including authentication headers.
@@ -74,8 +75,23 @@ class GenomeSpaceClient():
         response = request_func(genomespace_url,
                                 cookies=self._get_gs_auth_cookie(
                                     genomespace_url),
-                                headers=req_headers)
+                                headers=req_headers,
+                                allow_redirects=allow_redirects)
         response.raise_for_status()
+        return response
+
+    def _api_json_request(self, request_func, genomespace_url, headers=None):
+        """
+        Makes a request to a GenomeSpace API endpoint, after adding some
+        standard headers, including authentication headers.
+        Also performs some standard validations on the result.
+
+        :return: a JSON response after performing some sanity checks. Raises
+                 an exception in case of an unexpected response.
+        """
+        response = self._api_generic_request(request_func,
+                                             genomespace_url,
+                                             headers=headers)
         if response.headers["content-type"] != "application/json":
             raise GSClientException("Expected json content but received: %s" %
                                     (response.headers["content-type"],))
@@ -83,12 +99,16 @@ class GenomeSpaceClient():
         return response.json()
 
     def _api_get_request(self, genomespace_url, headers=None):
-        return self._api_generic_request(
+        return self._api_json_request(
             requests.get, genomespace_url, headers=headers)
 
     def _api_put_request(self, genomespace_url, headers=None):
-        return self._api_generic_request(
+        return self._api_json_request(
             requests.put, genomespace_url, headers=headers)
+
+    def _api_delete_request(self, genomespace_url, headers=None):
+        return self._api_generic_request(
+            requests.delete, genomespace_url, headers=headers)
 
     def _is_genomespace_url(self, url):
         return bool(GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(url))
@@ -122,10 +142,8 @@ class GenomeSpaceClient():
         return self._api_get_request(url)
 
     def _get_download_info(self, genomespace_url):
-        response = requests.get(genomespace_url,
-                                cookies=self._get_gs_auth_cookie(
-                                    genomespace_url),
-                                allow_redirects=False)
+        response = self._api_generic_request(requests.get, genomespace_url,
+                                             allow_redirects=False)
         return response.headers
 
     def _upload(self, source, destination):
@@ -152,7 +170,10 @@ class GenomeSpaceClient():
             self._upload(source, destination)
         else:
             raise GSClientException(
-                "Source or destination must be a valid GenomeSpace location.")
+                "Either source or destination must be a valid GenomeSpace location.")
 
     def list(self, genomespace_url):
         return self._api_get_request(genomespace_url)
+
+    def delete(self, genomespace_url):
+        return self._api_delete_request(genomespace_url)

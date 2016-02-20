@@ -15,6 +15,8 @@ def create_handler(storage_type):
         return S3StorageHandler()
     elif storage == "swift":
         return SwiftStorageHandler()
+    else:
+        return SimpleStorageHandler()
 
 
 class StorageHandler():
@@ -24,6 +26,18 @@ class StorageHandler():
     @abstractmethod
     def upload(self, source, upload_info):
         pass
+
+    @abstractmethod
+    def download(self, download_info, destination):
+        pass
+
+
+class SimpleStorageHandler(StorageHandler):
+
+    def upload(self, source, upload_info):
+        raise NotImplementedError(
+            "Don't know how to handle upload type: %s" %
+            (upload_info.get("uploadType")))
 
     def download(self, download_info, destination):
         if not destination or os.path.isdir(destination):
@@ -37,7 +51,7 @@ class StorageHandler():
                 handle.write(block)
 
 
-class S3StorageHandler(StorageHandler):
+class S3StorageHandler(SimpleStorageHandler):
 
     def upload(self, source, upload_info):
         creds = upload_info["amazonCredentials"]
@@ -52,7 +66,7 @@ class S3StorageHandler(StorageHandler):
                               upload_info['s3ObjectKey'])
 
 
-class SwiftStorageHandler(StorageHandler):
+class SwiftStorageHandler(SimpleStorageHandler):
     SEGMENT_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
 
     def upload(self, source, upload_info):

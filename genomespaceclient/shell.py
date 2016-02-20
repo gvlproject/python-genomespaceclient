@@ -16,6 +16,11 @@ def genomespace_copy_files(args):
     client.copy(args.source, args.destination)
 
 
+def genomespace_delete_files(args):
+    client = get_client(args)
+    client.delete(args.file_url)
+
+
 def genomespace_list_files(args):
     client = get_client(args)
     dir_contents = client.list(args.folder_url)
@@ -77,6 +82,14 @@ Examples:
     gs_list_parser.add_argument('folder_url', type=str,
                                 help="GenomeSpace URI of folder to list")
     gs_list_parser.set_defaults(func=genomespace_list_files)
+
+    # delete commands
+    gs_list_parser = subparsers.add_parser(
+        'rm',
+        help='Delete a GenomeSpace file or folder')
+    gs_list_parser.add_argument('file_url', type=str,
+                                help="GenomeSpace URI of file/folder to delete")
+    gs_list_parser.set_defaults(func=genomespace_delete_files)
 
     args = parser.parse_args()
     args.func(args)
