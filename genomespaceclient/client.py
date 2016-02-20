@@ -2,6 +2,7 @@ import re
 from urlparse import urlparse
 
 import requests
+import storage_handlers
 
 
 class GSClientException(Exception):
@@ -10,7 +11,7 @@ class GSClientException(Exception):
 
 class GenomeSpaceClient():
     """
-    A Genomespace client
+    A simple GenomeSpace client
     """
     GENOMESPACE_URL_REGEX = re.compile(
         '(http[s]?://.*/datamanager/v1.0/file/)(\w+)/(\w+)')
@@ -21,6 +22,11 @@ class GenomeSpaceClient():
         self.token = token
 
     def _get_gs_auth_cookie(self, server_url):
+        """
+        Returns a cookie containing a GenomeSpace auth token.
+        If an auth token was not provided at client initalisation, a request
+        is made to the identity server to obtain a new session token.
+        """
         if self.token:
             return {"gs-token": gsToken}
         parsed_uri = urlparse(server_url)
@@ -42,6 +48,26 @@ class GenomeSpaceClient():
         return session.cookies
 
     def _api_generic_request(self, request_func, genomespace_url, headers=None):
+        """
+        Makes a request to a GenomeSpace API endpoint, after adding some
+        standard headers, including authentication headers.
+        Also performs some standard validations on the result.
+
+        :type request_func: :func to call. Must be from the requests package,
+                            and maybe a get, put, post etc.
+        :param request_func: Calls the requested method in the requests package
+                            after adding some standard headers.
+
+        :type genomespace_url: :str
+        :param genomespace_url: GenomeSpace API URL to perform the request against.
+
+        :type headers: :dict
+        :param headers: A dict containing additional headers to include with
+                        the request.
+
+        :return: a JSON response after performing some sanity checks. Raises
+                 an exception in case of an unexpected response.
+        """
         req_headers = {'Content-type': 'application/json'}
         req_headers.update(headers or {})
 
@@ -90,19 +116,43 @@ class GenomeSpaceClient():
         return self._api_put_request(
             destination, headers={'x-gs-copy-source': copy_source})
 
+    def _get_upload_info(self, genomespace_url):
+        url = genomespace_url.replace("/datamanager/v1.0/file/",
+                                      "/datamanager/v1.0/uploadinfo/")
+        return self._api_get_request(url)
+
+    def _get_download_info(self, genomespace_url):
+        response = requests.get(genomespace_url,
+                                cookies=self._get_gs_auth_cookie(
+                                    genomespace_url),
+                                allow_redirects=False)
+        return response.headers
+
+    def _upload(self, source, destination):
+        upload_info = self._get_upload_info(destination)
+        handler = storage_handlers.create_handler(upload_info.get("uploadType"))
+        handler.upload(source, upload_info)
+
+    def _download(self, source, destination):
+        download_info = self._get_download_info(source)
+        storage_type = GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(
+            source).group(3)
+        handler = storage_handlers.create_handler(storage_type)
+        handler.download(download_info, destination)
+
     def copy(self, source, destination):
         if self._is_genomespace_url(
                 source) and self._is_genomespace_url(destination):
             self._internal_copy(source, destination)
-        elif self.is_genomespace_url(
+        elif self._is_genomespace_url(
                 source) and not self._is_genomespace_url(destination):
             self._download(source, destination)
-        elif not self.is_genomespace_url(
+        elif not self._is_genomespace_url(
                 source) and self._is_genomespace_url(destination):
             self._upload(source, destination)
         else:
             raise GSClientException(
-                "Source and destination files are both local. Use your Operating System's copy command.")
+                "Source or destination must be a valid GenomeSpace location.")
 
     def list(self, genomespace_url):
         return self._api_get_request(genomespace_url)
