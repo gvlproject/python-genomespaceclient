@@ -1,10 +1,7 @@
-import ast
-import os
-import re
 from setuptools import setup, find_packages
 
 setup(name='python-genomespaceclient',
-      version="0.1.0",
+      version="0.1.1",
       description='Python bindings and commandline client to the GenomeSpace'
       ' API',
       author='GVL Project',
