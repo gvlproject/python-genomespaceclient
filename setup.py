@@ -5,7 +5,8 @@ from setuptools import setup, find_packages
 
 setup(name='python-genomespaceclient',
       version="0.1.0",
-      description='Python bindings and commandline client to the GenomeSpace API',
+      description='Python bindings and commandline client to the GenomeSpace'
+      ' API',
       author='GVL Project',
       author_email='help@genome.edu.au',
       url='http://python-genomespaceclient.readthedocs.org/',
