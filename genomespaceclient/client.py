@@ -1,8 +1,11 @@
+import logging
 import re
 from urlparse import urlparse
 
 import requests
 import storage_handlers
+
+log = logging.getLogger(__name__)
 
 
 class GSClientException(Exception):

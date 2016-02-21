@@ -1,10 +1,16 @@
+from __future__ import print_function
+
 from abc import ABCMeta, abstractmethod, abstractproperty
+import logging
 import os
 from urlparse import urlparse
 
 import boto3
 import requests
 import swiftclient.shell
+import util
+
+log = logging.getLogger(__name__)
 
 
 def create_handler(storage_type):
@@ -47,8 +53,19 @@ class SimpleStorageHandler(StorageHandler):
         with open(destination, 'wb') as handle:
             response = requests.get(download_info['Location'], stream=True)
             response.raise_for_status()
+            total_length = response.headers.get('content-length')
+            bytes_copied = 0
             for block in response.iter_content(65536):
                 handle.write(block)
+                bytes_copied += len(block)
+                if log.isEnabledFor(logging.INFO):
+                    print("Progress: {progress:>8s} of {total:>8s} copied".format(
+                          progress=util.format_file_size(bytes_copied),
+                          total=util.format_file_size(int(total_length))
+                          if total_length else "unknown size"),
+                          end='\r')
+            if log.isEnabledFor(logging.INFO):
+                print("\n")
 
 
 class S3StorageHandler(SimpleStorageHandler):

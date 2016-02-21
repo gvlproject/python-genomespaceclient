@@ -1,9 +1,12 @@
 import argparse
 from datetime import datetime
 import json
+import logging
+import sys
 
 from client import GenomeSpaceClient
 import util
+log = logging.getLogger(__name__)
 
 
 def get_client(args):
@@ -33,7 +36,8 @@ def genomespace_list_files(args):
             last_modified=dir.get("lastModified", ""),
             name=dir.get("name")))
 
-if __name__ == "__main__":
+
+def process_args(args):
     parser = argparse.ArgumentParser()
 
     grp_auth_userpass = parser.add_argument_group(
@@ -49,6 +53,10 @@ if __name__ == "__main__":
         '-t', '--token', type=str,
         help="GenomeSpace auth token",
         required=False)
+
+    parser.add_argument("-v", "--verbose", action="count",
+                        dest="verbosity_count", default=0,
+                        help="increases log verbosity for each occurrence")
     subparsers = parser.add_subparsers(metavar='<subcommand>')
 
     # upload commands
@@ -91,5 +99,33 @@ Examples:
                                 help="GenomeSpace URI of file/folder to delete")
     gs_list_parser.set_defaults(func=genomespace_delete_files)
 
-    args = parser.parse_args()
-    args.func(args)
+    args = parser.parse_args(args[1:])
+    return args
+
+
+def configure_logging(verbosity_count):
+    if verbosity_count < 3:
+        logging.getLogger('requests').setLevel(logging.ERROR)
+    # set global logging level
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.DEBUG if verbosity_count > 3 else logging.INFO,
+        format='%(levelname)-5s: %(name)s: %(message)s')
+    # Set client log level
+    if verbosity_count:
+        log.setLevel(max(4 - verbosity_count, 1) * 10)
+    else:
+        log.setLevel(logging.INFO)
+
+
+def main():
+    try:
+        args = process_args(sys.argv)
+        configure_logging(args.verbosity_count)
+        # invoke subcommand
+        args.func(args)
+    finally:
+        logging.shutdown()
+
+if __name__ == "__main__":
+    sys.exit(main())
