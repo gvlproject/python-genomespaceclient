@@ -1,7 +1,7 @@
 .. python-genomespaceclient documentation master file.
 
 Welcome to Python-genomespaceclient's documentation!
-=======================================
+====================================================
 
 This is a python client for the GenomeSpace API. There's a Python API (the
 ``genomespaceclient`` module), and a command-line script (``genomespace``).
@@ -37,7 +37,7 @@ Commandline usage example
 
 
 Python usage example
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 

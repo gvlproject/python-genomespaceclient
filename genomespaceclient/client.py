@@ -20,6 +20,20 @@ class GenomeSpaceClient():
         '(http[s]?://.*/datamanager/v1.0/file/)(\w+)/(\w+)')
 
     def __init__(self, username=None, password=None, token=None):
+        """
+        Constructs a new GenomeSpace client. A username/password
+        combination or a token must be supplied.
+
+        :type username: :class:`str`
+        :param username: GenomeSpace username
+
+        :type password: :class:`str`
+        :param password: GenomeSpace password
+
+        :type token: :class:`str`
+        :param token: A GenomeSpace auth token. If supplied, the token will be
+                      used instead of the username/password.
+        """
         self.username = username
         self.password = password
         self.token = token
@@ -31,21 +45,26 @@ class GenomeSpaceClient():
         is made to the identity server to obtain a new session token.
         """
         if self.token:
-            return {"gs-token": gsToken}
+            return {"gs-token": self.token}
         parsed_uri = urlparse(server_url)
-        host_name = urlparse(server_url).netloc
         data = {
             "openid.ns": "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
-            "openid.identity": "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
-            "openid.claimed_id": "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
+            "openid.identity":
+            "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
+            "openid.claimed_id":
+            "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
             "openid.mode": "checkid_setup",
-            "openid.realm": "{uri.scheme}://{uri.netloc}%2Fjsui%2FopenIdClient%3Fis_return%3Dtrue".format(uri=parsed_uri),
-            "openid.return_to": "{uri.scheme}://{uri.netloc}/jsui/openIdClient?is_return=true".format(uri=parsed_uri),
+            "openid.realm":
+            "{uri.scheme}://{uri.netloc}%2Fjsui%2FopenIdClient%3Fis_return"
+            "%3Dtrue".format(uri=parsed_uri),
+            "openid.return_to":
+            "{uri.scheme}://{uri.netloc}/jsui/openIdClient"
+            "?is_return=true".format(uri=parsed_uri),
             "user_name": self.username,
             "password": self.password
         }
-        url = "{uri.scheme}://{uri.netloc}/identityServer/openIdProvider?_action=authorize".format(
-            uri=parsed_uri)
+        url = "{uri.scheme}://{uri.netloc}/identityServer/openIdProvider?" \
+            "_action=authorize".format(uri=parsed_uri)
         session = requests.Session()
         session.post(url, data=data)
         return session.cookies
@@ -62,10 +81,11 @@ class GenomeSpaceClient():
         :param request_func: Calls the requested method in the requests package
                             after adding some standard headers.
 
-        :type genomespace_url: :str
-        :param genomespace_url: GenomeSpace API URL to perform the request against.
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace API URL to perform the request
+                                against.
 
-        :type headers: :dict
+        :type headers: :class:`dict`
         :param headers: A dict containing additional headers to include with
                         the request.
 
@@ -124,11 +144,13 @@ class GenomeSpaceClient():
     def _internal_copy(self, source, destination):
         if not self._is_same_genomespace_server(source, destination):
             raise GSClientException(
-                "Copying between two different GenomeSpace servers is currently unsupported.")
+                "Copying between two different GenomeSpace servers is"
+                " currently unsupported.")
 
         if source.endswith("/") and not destination.endswith("/"):
             raise GSClientException(
-                "Source is a folder, and therefore, the destination must also be a folder.")
+                "Source is a folder, and therefore, the destination must also"
+                " be a folder.")
         if destination.endswith("/") and not source.endswith("/"):
             # Extract the filename from source and append it to destination
             destination += source.rsplit("/", 1)[-1]
@@ -151,7 +173,8 @@ class GenomeSpaceClient():
 
     def _upload(self, source, destination):
         upload_info = self._get_upload_info(destination)
-        handler = storage_handlers.create_handler(upload_info.get("uploadType"))
+        handler = storage_handlers.create_handler(
+            upload_info.get("uploadType"))
         handler.upload(source, upload_info)
 
     def _download(self, source, destination):
@@ -162,6 +185,22 @@ class GenomeSpaceClient():
         handler.download(download_info, destination)
 
     def copy(self, source, destination):
+        """
+        Copies a file to/from/within GenomeSpace.
+
+        E.g.
+
+        client.copy("/tmp/local_file.txt",
+        "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt")
+
+        :type source: :class:`str`
+        :param source: Local filename or GenomeSpace URL of source file.
+
+        :type destination: :class:`str`
+        :param destination: Local filename or GenomeSpace URL of destination
+                            file.
+
+        """
         if self._is_genomespace_url(
                 source) and self._is_genomespace_url(destination):
             self._internal_copy(source, destination)
@@ -173,9 +212,27 @@ class GenomeSpaceClient():
             self._upload(source, destination)
         else:
             raise GSClientException(
-                "Either source or destination must be a valid GenomeSpace location.")
+                "Either source or destination must be a valid GenomeSpace"
+                " location.")
 
     def move(self, source, destination):
+        """
+        Moves a file within GenomeSpace.
+
+        E.g.
+
+        client.move("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt",
+        "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+
+        :type source: :str:
+        :param source: GenomeSpace URL of source file. Cannot be a local file.
+
+        :type destination: :str:
+        :param destination: Local filename or GenomeSpace URL of destination
+                            file. If destination is a local file, the file
+                            will be copied to the destination and the source
+                            file deleted.
+        """
         if self._is_genomespace_url(source):
             self.copy(source, destination)
             self.delete(source)
@@ -184,7 +241,37 @@ class GenomeSpaceClient():
                 "Source must be a valid GenomeSpace locations")
 
     def list(self, genomespace_url):
+        """
+        Returns a list of files within a GenomeSpace folder.
+
+        E.g.
+
+        client.list("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/")
+
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL of folder to list.
+
+        :type destination: :class:`str`
+        :param destination: Local filename or GenomeSpace URL of destination
+                            file. If destination is a local file, the file
+                            will be copied to the destination and the source
+                            file deleted.
+
+        :rtype:  :class:`dict`
+        :return: a JSON dict in the format documented here:
+                 http://www.genomespace.org/support/api/restful-access-to-dm#appendix_a
+        """
         return self._api_get_request(genomespace_url)
 
     def delete(self, genomespace_url):
+        """
+        Deletes a file within a GenomeSpace folder.
+
+        E.g.
+
+        client.delete("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL of file to delete.
+        """
         return self._api_delete_request(genomespace_url)

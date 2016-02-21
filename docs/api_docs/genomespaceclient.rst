@@ -1,21 +1,11 @@
 genomespaceclient package
 =========================
 
-Submodules
-----------
-
-genomespaceclient.client module
--------------------------------
+genomespaceclient module
+------------------------
 
 .. automodule:: genomespaceclient.client
     :members:
-    :undoc-members:
+    :special-members: __init__
     :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: genomespaceclient
-    :members:
-    :undoc-members:
-    :show-inheritance:

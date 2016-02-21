@@ -1,11 +1,11 @@
 API reference
 =============
 
-This section includes the API documentation for the reference interface.
+This section contains the API documentation for the GenomeSpace client.
 
 .. toctree::
    :maxdepth: 2
    :glob:
 
-   genomespaceclient
+   genomespaceclient.rst
    

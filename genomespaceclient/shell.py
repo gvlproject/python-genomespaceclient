@@ -1,6 +1,4 @@
 import argparse
-from datetime import datetime
-import json
 import logging
 import sys
 
@@ -31,15 +29,16 @@ def genomespace_delete_files(args):
 
 def genomespace_list_files(args):
     client = get_client(args)
-    dir_contents = client.list(args.folder_url)
+    folder_contents = client.list(args.folder_url)
 
-    for dir in dir_contents["contents"]:
-        print("{isdir:<3s} {owner:<10s} {size:>10s} {last_modified:>26s} {name:s}".format(
-            isdir="d" if dir["isDirectory"] else "_",
-            owner=dir["owner"]["name"],
-            size=util.format_file_size(dir["size"]),
-            last_modified=dir.get("lastModified", ""),
-            name=dir.get("name")))
+    for folder in folder_contents["contents"]:
+        print("{isdir:<3s} {owner:<10s} {size:>10s} {last_modified:>26s}"
+              " {name:s}".format(
+                  isdir="d" if folder["isDirectory"] else "_",
+                  owner=folder["owner"]["name"],
+                  size=util.format_file_size(folder["size"]),
+                  last_modified=folder.get("lastModified", ""),
+                  name=folder.get("name")))
 
 
 def process_args(args):
@@ -71,23 +70,23 @@ def process_args(args):
         'cp',
         formatter_class=argparse.RawTextHelpFormatter,
         help='Copy a file from/to/within GenomeSpace',
-        description='''
-Examples:
-
-1. Copy a local file to GenomeSpace dir
-{0} cp /tmp/myfile.txt https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/
-
-2. Copy a remote file from GenomeSpace to a local file
-{0} cp https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/hello.txt /tmp/myfile.txt
-
-3. Copy a file within GenomeSpace
-{0} cp https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/hello.txt https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/hello2.txt
-
-'''.format(parser.prog))
-    file_copy_parser.add_argument('source', type=str,
-                                  help="Local path or GenomeSpace URI of source file")
-    file_copy_parser.add_argument('destination', type=str,
-                                  help="Local path or GenomeSpace URI of destination file")
+        description="Examples:\n\n"
+        "1. Copy a local file to GenomeSpace dir\n"
+        "{0} cp /tmp/myfile.txt https://dmdev.genomespace.org/datamanager/v1.0"
+        "/file/Home/s3:test/\n\n"
+        "2. Copy a remote file from GenomeSpace to a local file\n"
+        "{0} cp https://dmdev.genomespace.org/datamanager/v1.0/file/Home/"
+        "s3:test/hello.txt /tmp/myfile.txt\n\n"
+        "3. Copy a file within GenomeSpace\n"
+        "{0} cp https://dmdev.genomespace.org/datamanager/v1.0/file/Home/"
+        "s3:test/hello.txt https://dmdev.genomespace.org/datamanager/v1.0/"
+        "file/Home/s3:test/hello2.txt".format(parser.prog))
+    file_copy_parser.add_argument(
+        'source', type=str,
+        help="Local path or GenomeSpace URI of source file")
+    file_copy_parser.add_argument(
+        'destination', type=str,
+        help="Local path or GenomeSpace URI of destination file")
     file_copy_parser.set_defaults(func=genomespace_copy_files)
 
     # file move commands
@@ -95,11 +94,11 @@ Examples:
         'mv',
         formatter_class=argparse.RawTextHelpFormatter,
         help='Move a file within GenomeSpace',
-        description='''
-Examples:
-
-{0} mv https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/folder1/hello.txt https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/folder2/world.txt
-'''.format(parser.prog))
+        description="Examples:\n\n"
+        "{0} mv https://dmdev.genomespace.org/datamanager/v1.0/file/Home/"
+        "s3:test/folder1/hello.txt https://dmdev.genomespace.org/"
+        "datamanager/v1.0/file/Home/s3:test/folder2/"
+        "world.txt".format(parser.prog))
     file_move_parser.add_argument('source', type=str,
                                   help="GenomeSpace URI of source file")
     file_move_parser.add_argument('destination', type=str,
@@ -118,8 +117,9 @@ Examples:
     gs_list_parser = subparsers.add_parser(
         'rm',
         help='Delete a GenomeSpace file or folder')
-    gs_list_parser.add_argument('file_url', type=str,
-                                help="GenomeSpace URI of file/folder to delete")
+    gs_list_parser.add_argument(
+        'file_url', type=str,
+        help="GenomeSpace URI of file/folder to delete")
     gs_list_parser.set_defaults(func=genomespace_delete_files)
 
     args = parser.parse_args(args[1:])
