@@ -40,7 +40,7 @@ Commandline usage example
   genomespace -vvv -u <username> -p <password> mv https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt /tmp/new_local_file.txt
   
   # delete remote file
-  genomespace -vvv -u <username> -p <password> mv https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt
+  genomespace -u <username> -p <password> rm https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt
 
 
 Python usage example

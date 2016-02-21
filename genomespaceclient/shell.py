@@ -19,6 +19,11 @@ def genomespace_copy_files(args):
     client.copy(args.source, args.destination)
 
 
+def genomespace_move_files(args):
+    client = get_client(args)
+    client.move(args.source, args.destination)
+
+
 def genomespace_delete_files(args):
     client = get_client(args)
     client.delete(args.file_url)
@@ -40,6 +45,7 @@ def genomespace_list_files(args):
 def process_args(args):
     parser = argparse.ArgumentParser()
 
+    # authentication settings
     grp_auth_userpass = parser.add_argument_group(
         'user_pass_auth', 'username/password based authentication')
     grp_auth_userpass.add_argument('-u', '--user', type=str,
@@ -54,12 +60,13 @@ def process_args(args):
         help="GenomeSpace auth token",
         required=False)
 
+    # debugging and logging settings
     parser.add_argument("-v", "--verbose", action="count",
                         dest="verbosity_count", default=0,
                         help="increases log verbosity for each occurrence")
     subparsers = parser.add_subparsers(metavar='<subcommand>')
 
-    # upload commands
+    # File copy commands
     file_copy_parser = subparsers.add_parser(
         'cp',
         formatter_class=argparse.RawTextHelpFormatter,
@@ -82,6 +89,22 @@ Examples:
     file_copy_parser.add_argument('destination', type=str,
                                   help="Local path or GenomeSpace URI of destination file")
     file_copy_parser.set_defaults(func=genomespace_copy_files)
+
+    # file move commands
+    file_move_parser = subparsers.add_parser(
+        'mv',
+        formatter_class=argparse.RawTextHelpFormatter,
+        help='Move a file within GenomeSpace',
+        description='''
+Examples:
+
+{0} mv https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/folder1/hello.txt https://dmdev.genomespace.org/datamanager/v1.0/file/Home/s3:test/folder2/world.txt
+'''.format(parser.prog))
+    file_move_parser.add_argument('source', type=str,
+                                  help="GenomeSpace URI of source file")
+    file_move_parser.add_argument('destination', type=str,
+                                  help="GenomeSpace URI of destination file")
+    file_move_parser.set_defaults(func=genomespace_move_files)
 
     # download commands
     gs_list_parser = subparsers.add_parser(
