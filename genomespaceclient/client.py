@@ -175,6 +175,14 @@ class GenomeSpaceClient():
             raise GSClientException(
                 "Either source or destination must be a valid GenomeSpace location.")
 
+    def move(self, source, destination):
+        if self._is_genomespace_url(source):
+            self.copy(source, destination)
+            self.delete(source)
+        else:
+            raise GSClientException(
+                "Source must be a valid GenomeSpace locations")
+
     def list(self, genomespace_url):
         return self._api_get_request(genomespace_url)
 
