@@ -1,9 +1,13 @@
 import logging
 import re
-from urlparse import urlparse
 
+from genomespaceclient import storage_handlers
 import requests
-import storage_handlers
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
+
 
 log = logging.getLogger(__name__)
 
@@ -259,7 +263,7 @@ class GenomeSpaceClient():
 
         :rtype:  :class:`dict`
         :return: a JSON dict in the format documented here:
-                 http://www.genomespace.org/support/api/restful-access-to-dm#appendix_a
+                 http://www.genomespace.org/support/api/restful-access-to-dm#appendix_b
         """
         return self._api_get_request(genomespace_url)
 

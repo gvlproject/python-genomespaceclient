@@ -1,19 +1,30 @@
 from __future__ import print_function
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 import logging
 import os
-from urlparse import urlparse
 
 import boto3
+from genomespaceclient import util
 import requests
 import swiftclient.shell
-import util
+
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
+
 
 log = logging.getLogger(__name__)
 
 
 def create_handler(storage_type):
+    """
+    Factory method to return a storage handler for a particular storage type.
+    A storage handler handles uploads/downloads from a storage type (such as
+    S3, Swift etc), usually using a relevant native SDK.
+    """
     if not storage_type:
         return None
     storage = storage_type.lower()
@@ -59,10 +70,11 @@ class SimpleStorageHandler(StorageHandler):
                 handle.write(block)
                 bytes_copied += len(block)
                 if log.isEnabledFor(logging.INFO):
-                    print("Progress: {progress:>8s} of {total:>8s} copied".format(
-                          progress=util.format_file_size(bytes_copied),
-                          total=util.format_file_size(int(total_length))
-                          if total_length else "unknown size"),
+                    print("Progress: {progress:>8s} of {total:>8s}"
+                          " copied".format(
+                              progress=util.format_file_size(bytes_copied),
+                              total=util.format_file_size(int(total_length))
+                              if total_length else "unknown size"),
                           end='\r')
             if log.isEnabledFor(logging.INFO):
                 print("\n")
@@ -72,11 +84,11 @@ class S3StorageHandler(SimpleStorageHandler):
 
     def upload(self, source, upload_info):
         creds = upload_info["amazonCredentials"]
-        session = boto3.session.Session(aws_access_key_id=creds["accessKey"],
-                                        aws_secret_access_key=creds[
-                                            "secretKey"],
-                                        aws_session_token=creds["sessionToken"],
-                                        region_name="us-west-1")
+        session = boto3.session.Session(
+            aws_access_key_id=creds["accessKey"],
+            aws_secret_access_key=creds["secretKey"],
+            aws_session_token=creds["sessionToken"],
+            region_name="us-west-1")
         s3_client = session.client("s3")
         s3_client.upload_file(source,
                               upload_info['s3BucketName'],
@@ -88,17 +100,12 @@ class SwiftStorageHandler(SimpleStorageHandler):
 
     def upload(self, source, upload_info):
         container, location = upload_info["path"].split("/", 1)
-        swiftclient.shell.main(["swift",
-                                "--os-storage-url",
-                                upload_info["swiftFileUrl"],
-                                "--os-auth-token",
-                                upload_info["token"],
-                                "upload",
-                                container,
-                                "-S",
-                                str(SwiftStorageHandler.SEGMENT_SIZE),
-                                "--segment-container",
-                                container,
-                                "--object-name",
-                                location,
-                                source])
+        swiftclient.shell.main(
+            ["swift",
+             "--os-storage-url", upload_info["swiftFileUrl"],
+             "--os-auth-token", upload_info["token"],
+             "upload", container,
+             "-S", str(SwiftStorageHandler.SEGMENT_SIZE),
+             "--segment-container", container,
+             "--object-name", location,
+             source])

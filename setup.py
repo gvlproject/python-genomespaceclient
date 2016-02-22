@@ -7,7 +7,10 @@ setup(name='python-genomespaceclient',
       author='GVL Project',
       author_email='help@genome.edu.au',
       url='http://python-genomespaceclient.readthedocs.org/',
-      install_requires=['boto3', 'python-swiftclient'],
+      install_requires=['requests', 'boto3', 'python-swiftclient'],
+      extras_require={
+          'dev': ['tox', 'sphinx']
+      },
       packages=find_packages(),
       license='MIT',
       classifiers=[
@@ -29,5 +32,6 @@ setup(name='python-genomespaceclient',
           'console_scripts': [
               'genomespace = genomespaceclient:main'
           ]
-      }
+      },
+      test_suite="test"
       )

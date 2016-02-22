@@ -2,8 +2,10 @@ import argparse
 import logging
 import sys
 
-from client import GenomeSpaceClient
-import util
+from genomespaceclient import GenomeSpaceClient
+from genomespaceclient import util
+
+
 log = logging.getLogger(__name__)
 
 
