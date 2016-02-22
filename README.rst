@@ -5,10 +5,21 @@ Python bindings and commandline client to the GenomeSpace API
    :target: https://pypi.python.org/pypi/python-genomespaceclient/
    :alt: latest version available on PyPI
 
+.. image:: https://coveralls.io/repos/gvlproject/python-genomespaceclient/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/gvlproject/python-genomespaceclient?branch=master
+   :alt: Code Coverage
+
+.. image:: https://travis-ci.org/gvlproject/python-genomespaceclient.svg?branch=master
+   :target: https://travis-ci.org/gvlproject/python-genomespaceclient
+   :alt: Travis Build Status
+
+.. image:: https://img.shields.io/pypi/pyversions/python-genomespaceclient.svg
+   :target: https://pypi.python.org/pypi/python-genomespaceclient/
+   
 .. image:: https://readthedocs.org/projects/python-genomespaceclient/badge/?version=latest
    :target: http://python-genomespaceclient.readthedocs.org/en/latest/?badge=latest
    :alt: Documentation Status
-
+      
 This is a python client for the GenomeSpace API. There's a Python API (the
 ``genomespaceclient`` module), and a command-line script (``genomespace``).
 
