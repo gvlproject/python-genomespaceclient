@@ -96,7 +96,8 @@ class GenomeSpaceClient():
         :return: a JSON response after performing some sanity checks. Raises
                  an exception in case of an unexpected response.
         """
-        req_headers = {'Content-type': 'application/json'}
+        req_headers = {'Accept': 'application/json',
+                       'Content-Type': 'application/json'}
         req_headers.update(headers or {})
 
         response = request_func(genomespace_url,
