@@ -3,11 +3,13 @@ import os
 import tempfile
 from test import helpers
 import unittest
+import uuid
+
+from scripttest import TestFileEnvironment
 try:
     from urllib.parse import urljoin
 except ImportError:
     from urlparse import urljoin
-from scripttest import TestFileEnvironment
 
 
 class GenomeSpaceShellTestCase(unittest.TestCase):
@@ -26,7 +28,7 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         return os.path.join(os.path.dirname(__file__), 'fixtures/logo.png')
 
     def _get_temp_file(self):
-        return os.path.join(tempfile.gettempdir(), 'logo_temp.png')
+        return os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
     def test_list(self):
         local_test_file = self._get_test_file()
@@ -44,8 +46,6 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
     def test_copy(self):
         local_test_file = self._get_test_file()
         local_temp_file = self._get_temp_file()
-        if os.path.exists(local_temp_file):
-            os.remove(local_temp_file)
 
         self._call_shell_command(
             "cp", local_test_file,
