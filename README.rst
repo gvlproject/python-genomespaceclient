@@ -5,7 +5,7 @@ Python bindings and commandline client to the GenomeSpace API
    :target: https://pypi.python.org/pypi/python-genomespaceclient/
    :alt: latest version available on PyPI
 
-.. image:: https://coveralls.io/repos/gvlproject/python-genomespaceclient/badge.svg?branch=master&service=github
+.. image:: https://coveralls.io/repos/github/gvlproject/python-genomespaceclient/badge.svg?branch=master
    :target: https://coveralls.io/github/gvlproject/python-genomespaceclient?branch=master
    :alt: Code Coverage
 
