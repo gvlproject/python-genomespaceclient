@@ -48,30 +48,17 @@ class GenomeSpaceClient():
         If an auth token was not provided at client initalisation, a request
         is made to the identity server to obtain a new session token.
         """
-        if self.token:
-            return {"gs-token": self.token}
-        parsed_uri = urlparse(server_url)
-        data = {
-            "openid.ns": "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0",
-            "openid.identity":
-            "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
-            "openid.claimed_id":
-            "http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select",
-            "openid.mode": "checkid_setup",
-            "openid.realm":
-            "{uri.scheme}://{uri.netloc}%2Fjsui%2FopenIdClient%3Fis_return"
-            "%3Dtrue".format(uri=parsed_uri),
-            "openid.return_to":
-            "{uri.scheme}://{uri.netloc}/jsui/openIdClient"
-            "?is_return=true".format(uri=parsed_uri),
-            "user_name": self.username,
-            "password": self.password
-        }
-        url = "{uri.scheme}://{uri.netloc}/identityServer/openIdProvider?" \
-            "_action=authorize".format(uri=parsed_uri)
-        session = requests.Session()
-        session.post(url, data=data)
-        return session.cookies
+        if not self.token:
+            parsed_uri = urlparse(server_url)
+            url = "{uri.scheme}://{uri.netloc}/identityServer/basic".format(
+                uri=parsed_uri)
+            response = requests.get(url,
+                                    auth=requests.auth.HTTPBasicAuth(
+                                        self.username,
+                                        self.password))
+            response.raise_for_status()
+            self.token = response.cookies.get("gs-token")
+        return {"gs-token": self.token}
 
     def _api_generic_request(self, request_func, genomespace_url, headers=None,
                              allow_redirects=True):
@@ -206,6 +193,7 @@ class GenomeSpaceClient():
                             file.
 
         """
+        log.debug("copy: %s -> %s", source, destination)
         if self._is_genomespace_url(
                 source) and self._is_genomespace_url(destination):
             self._internal_copy(source, destination)
@@ -238,6 +226,7 @@ class GenomeSpaceClient():
                             will be copied to the destination and the source
                             file deleted.
         """
+        log.debug("move: %s -> %s", source, destination)
         if self._is_genomespace_url(source):
             self.copy(source, destination)
             self.delete(source)
@@ -266,6 +255,7 @@ class GenomeSpaceClient():
         :return: a JSON dict in the format documented here:
                  http://www.genomespace.org/support/api/restful-access-to-dm#appendix_b
         """
+        log.debug("list: %s", genomespace_url)
         return self._api_get_request(genomespace_url)
 
     def delete(self, genomespace_url):
@@ -279,4 +269,5 @@ class GenomeSpaceClient():
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL of file to delete.
         """
+        log.debug("delete: %s", genomespace_url)
         return self._api_delete_request(genomespace_url)
