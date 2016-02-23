@@ -143,9 +143,9 @@ def configure_logging(verbosity_count):
         log.setLevel(logging.INFO)
 
 
-def main():
+def main(args):
     try:
-        args = process_args(sys.argv)
+        args = process_args(args)
         configure_logging(args.verbosity_count)
         # invoke subcommand
         args.func(args)
@@ -153,4 +153,4 @@ def main():
         logging.shutdown()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv))
