@@ -9,7 +9,7 @@ setup(name='python-genomespaceclient',
       url='http://python-genomespaceclient.readthedocs.org/',
       install_requires=['requests', 'boto3', 'python-swiftclient'],
       extras_require={
-          'dev': ['tox', 'sphinx', 'ScriptTest']
+          'dev': ['tox', 'sphinx']
       },
       packages=find_packages(),
       license='MIT',

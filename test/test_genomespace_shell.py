@@ -5,7 +5,9 @@ from test import helpers
 import unittest
 import uuid
 
-from scripttest import TestFileEnvironment
+from genomespaceclient import main
+
+
 try:
     from urllib.parse import urljoin
 except ImportError:
@@ -15,14 +17,11 @@ except ImportError:
 class GenomeSpaceShellTestCase(unittest.TestCase):
 
     def _call_shell_command(self, command, *args):
-        env = TestFileEnvironment('./test-output')
-        main_args = [
-            "{0}/../genomespaceclient/shell.py".format(
-                os.path.dirname(__file__)),
-            "-u", helpers.get_test_username(),
-            "-p", helpers.get_test_password(),
-            command] + list(args)
-        return env.run("python", *main_args, expect_stderr=True)
+        main_args = ["genomespace", "-u", helpers.get_test_username(),
+                     "-p", helpers.get_test_password(),
+                     command] + list(args)
+
+        return helpers.run_python_script(main, main_args)
 
     def _get_test_file(self):
         return os.path.join(os.path.dirname(__file__), 'fixtures/logo.png')
@@ -39,7 +38,7 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         output = self._call_shell_command(
             "ls", helpers.get_test_folder())
         self.assertTrue(
-            'list_logo.png' in output.stdout,
+            'list_logo.png' in output,
             "Expected file not found. Received: %s" %
             (output,))
 
@@ -64,7 +63,7 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
 
         output = self._call_shell_command(
             "ls", helpers.get_test_folder())
-        if 'list_logo.png' in output.stdout:
+        if 'list_logo.png' in output:
             self._call_shell_command(
                 "rm", urljoin(helpers.get_test_folder(), 'logo_copy.png'))
 
