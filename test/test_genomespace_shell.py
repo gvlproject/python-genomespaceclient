@@ -7,16 +7,20 @@ try:
     from urllib.parse import urljoin
 except ImportError:
     from urlparse import urljoin
-from genomespaceclient import main
+from scripttest import TestFileEnvironment
 
 
 class GenomeSpaceShellTestCase(unittest.TestCase):
 
     def _call_shell_command(self, command, *args):
-        main_args = ["genomespace", "-u", helpers.get_test_username(),
-                     "-p", helpers.get_test_password(),
-                     command]
-        main(main_args + list(args))
+        env = TestFileEnvironment('./test-output')
+        main_args = [
+            "{0}/../genomespaceclient/shell.py".format(
+                os.path.dirname(__file__)),
+            "-u", helpers.get_test_username(),
+            "-p", helpers.get_test_password(),
+            command] + list(args)
+        return env.run("python", *main_args, expect_stderr=True)
 
     def _get_test_file(self):
         return os.path.join(os.path.dirname(__file__), 'fixtures/logo.png')
@@ -30,9 +34,12 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         self._call_shell_command(
             "cp", local_test_file,
             urljoin(helpers.get_test_folder(), 'list_logo.png'))
-        self._call_shell_command(
+        output = self._call_shell_command(
             "ls", helpers.get_test_folder())
-        # self.assertTrue(len(found_file) == 1, "Expected file not found")
+        self.assertTrue(
+            'list_logo.png' in output.stdout,
+            "Expected file not found. Received: %s" %
+            (output,))
 
     def test_copy(self):
         local_test_file = self._get_test_file()
@@ -55,12 +62,11 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         local_test_file = self._get_test_file()
         local_temp_file = self._get_temp_file()
 
-        client = helpers.get_genomespace_client()
-        filelist = client.list(helpers.get_test_folder())
-        found_file = [f for f in filelist["contents"]
-                      if f["name"] == "logo_copy.png"]
-        if len(found_file) == 1:
-            client.delete(urljoin(helpers.get_test_folder(), 'logo_copy.png'))
+        output = self._call_shell_command(
+            "ls", helpers.get_test_folder())
+        if 'list_logo.png' in output.stdout:
+            self._call_shell_command(
+                "rm", urljoin(helpers.get_test_folder(), 'logo_copy.png'))
 
         self._call_shell_command(
             "cp", local_test_file,
