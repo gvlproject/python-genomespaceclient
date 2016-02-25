@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import binascii
 
 from genomespaceclient import GenomeSpaceClient
 from genomespaceclient import util
@@ -17,6 +18,20 @@ def get_client(args):
 def genomespace_copy_files(args):
     client = get_client(args)
     client.copy(args.source, args.destination)
+
+
+def genomespace_encoded_copy_files(args):
+    """
+    This version of copy is intended to support applications
+    like Galaxy which need to pass in potentially untrusted values
+    via the commandline as parameters. Since this
+    could allow for a shell exploit, the encoded_copy command
+    accepts hex encoded input of a utf-8 string, which it
+    decodes before copying normally.
+    """
+    client = get_client(args)
+    client.copy(binascii.unhexlify(args.source).decode('utf-8'),
+                binascii.unhexlify(args.destination).decode('utf-8'))
 
 
 def genomespace_move_files(args):
@@ -64,7 +79,7 @@ def process_args(args):
     # debugging and logging settings
     parser.add_argument("-v", "--verbose", action="count",
                         dest="verbosity_count", default=0,
-                        help="increases log verbosity for each occurrence")
+                        help="increases log verbosity for each occurrence.")
     subparsers = parser.add_subparsers(metavar='<subcommand>')
 
     # File copy commands
@@ -85,11 +100,30 @@ def process_args(args):
         "file/Home/s3:test/hello2.txt".format(parser.prog))
     file_copy_parser.add_argument(
         'source', type=str,
-        help="Local path or GenomeSpace URI of source file")
+        help="Local path or GenomeSpace URI of source file.")
     file_copy_parser.add_argument(
         'destination', type=str,
-        help="Local path or GenomeSpace URI of destination file")
+        help="Local path or GenomeSpace URI of destination file.")
     file_copy_parser.set_defaults(func=genomespace_copy_files)
+
+    # Encoded File copy commands
+    encoded_file_copy_parser = subparsers.add_parser(
+        'encoded_cp',
+        help="This command is not intended for normal use, and"
+        "  is meant to support programs such as Galaxy with securely passing"
+        "  untrusted filenames on the commandline to the GenomeSpace client.",
+        description="Copy a file from/to/within GenomeSpace, where the"
+        "  filename parameters are utf-8 strings encoded in hex."
+        " This command is not intended for normal use, and"
+        "  is meant to support programs such as Galaxy with securely passing"
+        "  untrusted filenames on the commandline to the GenomeSpace client.")
+    encoded_file_copy_parser.add_argument(
+        'source', type=str,
+        help="Encoded Local path or GenomeSpace URI of source file.")
+    encoded_file_copy_parser.add_argument(
+        'destination', type=str,
+        help="Encoded Local path or GenomeSpace URI of destination file.")
+    encoded_file_copy_parser.set_defaults(func=genomespace_encoded_copy_files)
 
     # file move commands
     file_move_parser = subparsers.add_parser(
@@ -102,9 +136,9 @@ def process_args(args):
         "datamanager/v1.0/file/Home/s3:test/folder2/"
         "world.txt".format(parser.prog))
     file_move_parser.add_argument('source', type=str,
-                                  help="GenomeSpace URI of source file")
+                                  help="GenomeSpace URI of source file.")
     file_move_parser.add_argument('destination', type=str,
-                                  help="GenomeSpace URI of destination file")
+                                  help="GenomeSpace URI of destination file.")
     file_move_parser.set_defaults(func=genomespace_move_files)
 
     # download commands
@@ -112,16 +146,16 @@ def process_args(args):
         'ls',
         help='List contents of a GenomeSpace folder')
     gs_list_parser.add_argument('folder_url', type=str,
-                                help="GenomeSpace URI of folder to list")
+                                help="GenomeSpace URI of folder to list.")
     gs_list_parser.set_defaults(func=genomespace_list_files)
 
     # delete commands
     gs_list_parser = subparsers.add_parser(
         'rm',
-        help='Delete a GenomeSpace file or folder')
+        help="Delete a GenomeSpace file or folder.")
     gs_list_parser.add_argument(
         'file_url', type=str,
-        help="GenomeSpace URI of file/folder to delete")
+        help="GenomeSpace URI of file/folder to delete.")
     gs_list_parser.set_defaults(func=genomespace_delete_files)
 
     args = parser.parse_args(args[1:])
