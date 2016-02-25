@@ -161,6 +161,22 @@ class GenomeSpaceClient():
     def _get_download_info(self, genomespace_url):
         response = self._api_generic_request(requests.get, genomespace_url,
                                              allow_redirects=False)
+        # This is for an edge case where GenomeSpace urls such as
+        # https://dm.genomespace.org/datamanager/file/Home redirect to
+        # https://gsui.genomespace.org/datamanager/v1.0/file/Home/ before
+        # redirecting to the actual storage URL.
+        # Therefore, keep checking the response headers till it
+        # no longer matches an API URL.
+        redirect_count = 0
+        while self._is_genomespace_url(response.headers['Location']):
+            response = self._api_generic_request(requests.get,
+                                                 response.headers['Location'],
+                                                 allow_redirects=False)
+            if redirect_count > 4:
+                raise GSClientException("Too many redirects while trying to"
+                                        " fetch: {}".format(genomespace_url))
+            redirect_count += 1
+
         return response.headers
 
     def _upload(self, source, destination):
