@@ -21,7 +21,7 @@ class GenomeSpaceClient():
     A simple GenomeSpace client
     """
     GENOMESPACE_URL_REGEX = re.compile(
-        '(http[s]?://.*/datamanager/v1.0/file/)(\w+)/(\w+)')
+        '(http[s]?://.*/datamanager/(v[0-9]+.[0-9]+/)?file/)(\w+)/(\w+)')
 
     def __init__(self, username=None, password=None, token=None):
         """
@@ -172,7 +172,7 @@ class GenomeSpaceClient():
     def _download(self, source, destination):
         download_info = self._get_download_info(source)
         storage_type = GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(
-            source).group(3)
+            source).group(4)
         handler = storage_handlers.create_handler(storage_type)
         handler.download(download_info, destination)
 
