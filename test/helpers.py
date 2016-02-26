@@ -23,7 +23,7 @@ def get_genomespace_client():
                              password=get_test_password())
 
 
-def get_test_folder():
+def get_remote_test_folder():
     return os.environ["GENOMESPACE_TEST_FOLDER"]
 
 
