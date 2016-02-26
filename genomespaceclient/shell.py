@@ -11,8 +11,10 @@ log = logging.getLogger(__name__)
 
 
 def get_client(args):
-    return GenomeSpaceClient(args.user, args.password,
-                             args.token)
+    token = binascii.unhexlify(args.token).decode(
+        'utf-8') if args.token else None
+    return GenomeSpaceClient(username=args.user, password=args.password,
+                             token=token)
 
 
 def genomespace_copy_files(args):
@@ -73,7 +75,7 @@ def process_args(args):
         'token based authentication  (instead of username/password)')
     grp_auth_token.add_argument(
         '-t', '--token', type=str,
-        help="GenomeSpace auth token",
+        help="GenomeSpace auth token, as a utf-8 string encoded in hex.",
         required=False)
 
     # debugging and logging settings
