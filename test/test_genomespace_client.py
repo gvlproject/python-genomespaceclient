@@ -35,6 +35,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         found_file = [f for f in filelist["contents"]
                       if f["name"] == remote_name]
         self.assertTrue(len(found_file) == 1, "Expected file not found")
+        client.delete(remote_file_path)
 
     def test_copy(self):
         client = helpers.get_genomespace_client()

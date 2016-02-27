@@ -42,14 +42,12 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         local_test_file = self._get_test_file()
         remote_file_path, remote_name = self._get_remote_file()
 
-        self._call_shell_command(
-            "cp", local_test_file, remote_file_path)
+        self._call_shell_command("cp", local_test_file, remote_file_path)
         output = self._call_shell_command(
             "ls", helpers.get_remote_test_folder())
-        self.assertTrue(
-            remote_name in output,
-            "Expected file not found. Received: %s" %
-            (output,))
+        self.assertTrue(remote_name in output,
+                        "Expected file not found. Received: %s" % (output,))
+        self._call_shell_command("rm", remote_file_path)
 
     def test_copy(self):
         local_test_file = self._get_test_file()
