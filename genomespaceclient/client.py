@@ -16,6 +16,70 @@ class GSClientException(Exception):
     pass
 
 
+class GSDataFormat(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_c
+    """
+
+    def __init__(self, name, url, fileExtension, description):
+        self.name = name
+        self.url = url
+        self.fileExtension = fileExtension
+        self.description = description
+
+    @staticmethod
+    def from_json(json_data):
+        if json_data:
+            return GSDataFormat(
+                json_data.get('name'),
+                json_data.get('url'),
+                json_data.get('fileExtension'),
+                json_data.get('description')
+            )
+        else:
+            return None
+
+
+class GSFileMetadata(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_a
+    """
+
+    def __init__(self, name, path, url, parentUrl, size, owner, isDirectory,
+                 isLink, targetPath, lastModified, dataFormat,
+                 availableDataFormats):
+        self.name = name
+        self.path = path
+        self.url = url
+        self.parentUrl = parentUrl
+        self.size = size
+        self.owner = owner
+        self.isDirectory = isDirectory
+        self.isLink = isLink
+        self.targetPath = targetPath
+        self.lastModified = lastModified
+        self.dataFormat = dataFormat
+        self.availableDataFormats = availableDataFormats
+
+    @staticmethod
+    def from_json(json_data):
+        return GSFileMetadata(
+            json_data.get('name'),
+            json_data.get('path'),
+            json_data.get('url'),
+            json_data.get('parentUrl'),
+            json_data.get('size'),
+            json_data.get('owner'),
+            json_data.get('isDirectory'),
+            json_data.get('isLink'),
+            json_data.get('targetPath'),
+            json_data.get('lastModified'),
+            GSDataFormat.from_json(json_data.get('dataFormat')),
+            [GSDataFormat.from_json(data_fmt)
+             for data_fmt in json_data.get('availableDataFormats', [])]
+        )
+
+
 class GenomeSpaceClient():
     """
     A simple GenomeSpace client
@@ -287,3 +351,25 @@ class GenomeSpaceClient():
         """
         log.debug("delete: %s", genomespace_url)
         return self._api_delete_request(genomespace_url)
+
+    def get_metadata(self, genomespace_url):
+        """
+        Gets metadata information of a genomespace file/folder. See:
+        http://www.genomespace.org/support/api/restful-access-to-dm#file_metadata
+
+        E.g.
+
+        client.get_metadata("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL of file to delete.
+
+        :rtype:  :class:`dict`
+        :return: a JSON dict in the format documented here:
+                 http://www.genomespace.org/support/api/restful-access-to-dm#appendix_b
+        """
+        log.debug("get_metadata: %s", genomespace_url)
+        url = re.sub(r"((http[s]?://.*/datamanager/)(v[0-9]+.[0-9]+/)?file)",
+                     r'\g<2>v1.0/filemetadata', genomespace_url)
+        json_data = self._api_get_request(url)
+        return GSFileMetadata.from_json(json_data)

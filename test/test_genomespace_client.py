@@ -4,6 +4,7 @@ import tempfile
 from test import helpers
 import unittest
 import uuid
+from genomespaceclient import GSFileMetadata, GSDataFormat
 try:
     from urllib.parse import urljoin
 except ImportError:
@@ -22,7 +23,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         return os.path.join(tempfile.gettempdir(), self._get_temp_filename())
 
     def _get_remote_file(self):
-        filename = self._get_temp_filename()
+        filename = self._get_temp_filename() + ".txt"
         return (urljoin(helpers.get_remote_test_folder(), filename),
                 filename)
 
@@ -81,3 +82,25 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
                       if f["name"] == remote_name]
         self.assertTrue(len(found_file) == 0,
                         "File was found but should have been deleted")
+
+    def test_get_metadata(self):
+        client = helpers.get_genomespace_client()
+        local_test_file = self._get_test_file()
+        remote_file_path, _ = self._get_remote_file()
+
+        # Set a specific data format
+        remote_file_path += '?dataformat=http://www.genomespace.org' \
+                            '/datamanager/dataformat/txt'
+        client.copy(local_test_file, remote_file_path)
+        metadata = client.get_metadata(remote_file_path)
+        client.delete(remote_file_path)
+
+        self.assertIsInstance(
+            metadata, GSFileMetadata,
+            "Expected metadata to be of type GSFileMetadata")
+        self.assertIsInstance(
+            metadata.dataFormat, GSDataFormat,
+            "Expected metadata's dataFormat to be of type GSDataFormat")
+        self.assertIsInstance(
+            metadata.availableDataFormats, list,
+            "Expected metadata's available formats to be of type list")

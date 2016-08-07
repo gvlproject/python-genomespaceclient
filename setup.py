@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='python-genomespaceclient',
-      version="0.1.6",
+      version="0.1.7",
       description='Python bindings and commandline client to the GenomeSpace'
       ' API',
       author='GVL Project',
