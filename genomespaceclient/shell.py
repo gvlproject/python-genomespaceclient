@@ -1,7 +1,6 @@
 import argparse
 import logging
 import sys
-import binascii
 
 from genomespaceclient import GenomeSpaceClient
 from genomespaceclient import util
@@ -11,29 +10,13 @@ log = logging.getLogger(__name__)
 
 
 def get_client(args):
-    token = binascii.unhexlify(args.token).decode(
-        'utf-8') if args.token else None
     return GenomeSpaceClient(username=args.user, password=args.password,
-                             token=token)
+                             token=args.token)
 
 
 def genomespace_copy_files(args):
     client = get_client(args)
     client.copy(args.source, args.destination)
-
-
-def genomespace_encoded_copy_files(args):
-    """
-    This version of copy is intended to support applications
-    like Galaxy which need to pass in potentially untrusted values
-    via the commandline as parameters. Since this
-    could allow for a shell exploit, the encoded_copy command
-    accepts hex encoded input of a utf-8 string, which it
-    decodes before copying normally.
-    """
-    client = get_client(args)
-    client.copy(binascii.unhexlify(args.source).decode('utf-8'),
-                binascii.unhexlify(args.destination).decode('utf-8'))
 
 
 def genomespace_move_files(args):
@@ -75,7 +58,7 @@ def process_args(args):
         'token based authentication  (instead of username/password)')
     grp_auth_token.add_argument(
         '-t', '--token', type=str,
-        help="GenomeSpace auth token, as a utf-8 string encoded in hex.",
+        help="GenomeSpace auth token.",
         required=False)
 
     # debugging and logging settings
@@ -107,25 +90,6 @@ def process_args(args):
         'destination', type=str,
         help="Local path or GenomeSpace URI of destination file.")
     file_copy_parser.set_defaults(func=genomespace_copy_files)
-
-    # Encoded File copy commands
-    encoded_file_copy_parser = subparsers.add_parser(
-        'encoded_cp',
-        help="This command is not intended for normal use, and"
-        "  is meant to support programs such as Galaxy with securely passing"
-        "  untrusted filenames on the commandline to the GenomeSpace client.",
-        description="Copy a file from/to/within GenomeSpace, where the"
-        "  filename parameters are utf-8 strings encoded in hex."
-        " This command is not intended for normal use, and"
-        "  is meant to support programs such as Galaxy with securely passing"
-        "  untrusted filenames on the commandline to the GenomeSpace client.")
-    encoded_file_copy_parser.add_argument(
-        'source', type=str,
-        help="Encoded Local path or GenomeSpace URI of source file.")
-    encoded_file_copy_parser.add_argument(
-        'destination', type=str,
-        help="Encoded Local path or GenomeSpace URI of destination file.")
-    encoded_file_copy_parser.set_defaults(func=genomespace_encoded_copy_files)
 
     # file move commands
     file_move_parser = subparsers.add_parser(

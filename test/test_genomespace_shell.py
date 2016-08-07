@@ -6,7 +6,6 @@ import unittest
 import uuid
 
 from genomespaceclient import main
-import binascii
 
 
 try:
@@ -56,23 +55,6 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
 
         self._call_shell_command("cp", local_test_file, remote_file)
         self._call_shell_command("cp", remote_file, local_temp_file)
-        self._call_shell_command("rm", remote_file)
-
-        self.assertTrue(filecmp.cmp(local_test_file, local_temp_file))
-        os.remove(local_temp_file)
-
-    def test_encoded_copy(self):
-        local_test_file = self._get_test_file()
-        local_temp_file = self._get_temp_file()
-        remote_file, _ = self._get_remote_file()
-
-        source = binascii.hexlify(local_test_file.encode("utf8"))
-        remote_target = binascii.hexlify(remote_file.encode("utf8"))
-        local_target = binascii.hexlify(local_temp_file.encode("utf8"))
-        self._call_shell_command("encoded_cp", source.decode("ascii"),
-                                 remote_target.decode("ascii"))
-        self._call_shell_command("encoded_cp", remote_target.decode("ascii"),
-                                 local_target.decode("ascii"))
         self._call_shell_command("rm", remote_file)
 
         self.assertTrue(filecmp.cmp(local_test_file, local_temp_file))
