@@ -171,7 +171,7 @@ class GenomeSpaceClient():
         response = self._api_generic_request(request_func,
                                              genomespace_url,
                                              headers=headers)
-        if response.headers["content-type"] != "application/json":
+        if "application/json" not in response.headers["content-type"]:
             raise GSClientException("Expected json content but received: %s" %
                                     (response.headers["content-type"],))
 
