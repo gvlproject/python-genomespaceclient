@@ -134,7 +134,7 @@ def configure_logging(verbosity_count):
     # set global logging level
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if verbosity_count > 3 else logging.INFO,
+        level=logging.DEBUG if verbosity_count > 3 else logging.ERROR,
         format='%(levelname)-5s: %(name)s: %(message)s')
     # Set client log level
     if verbosity_count:
