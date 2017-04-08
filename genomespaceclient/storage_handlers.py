@@ -4,10 +4,9 @@ from abc import ABCMeta, abstractmethod
 import logging
 import os
 
-import boto3
+from cloudbridge.cloud.factory import CloudProviderFactory, ProviderList
 from genomespaceclient import util
 import requests
-import swiftclient.shell
 
 
 try:
@@ -84,15 +83,14 @@ class S3StorageHandler(SimpleStorageHandler):
 
     def upload(self, source, upload_info):
         creds = upload_info["amazonCredentials"]
-        session = boto3.session.Session(
-            aws_access_key_id=creds["accessKey"],
-            aws_secret_access_key=creds["secretKey"],
-            aws_session_token=creds["sessionToken"],
-            region_name="us-west-1")
-        s3_client = session.client("s3")
-        s3_client.upload_file(source,
-                              upload_info['s3BucketName'],
-                              upload_info['s3ObjectKey'])
+        provider = CloudProviderFactory().create_provider(
+            ProviderList.AWS,
+            {'aws_access_key': creds["accessKey"],
+             'aws_secret_key': creds["secretKey"],
+             'aws_session_token': creds["sessionToken"]})
+        bucket = provider.object_store.get(upload_info['s3BucketName'])
+        obj = bucket.create_object(upload_info['s3ObjectKey'])
+        obj.upload_from_file(source)
 
 
 class SwiftStorageHandler(SimpleStorageHandler):
@@ -100,12 +98,10 @@ class SwiftStorageHandler(SimpleStorageHandler):
 
     def upload(self, source, upload_info):
         container, location = upload_info["path"].split("/", 1)
-        swiftclient.shell.main(
-            ["swift",
-             "--os-storage-url", upload_info["swiftFileUrl"],
-             "--os-auth-token", upload_info["token"],
-             "upload", container,
-             "-S", str(SwiftStorageHandler.SEGMENT_SIZE),
-             "--segment-container", container,
-             "--object-name", location,
-             source])
+        provider = CloudProviderFactory().create_provider(
+            ProviderList.OPENSTACK,
+            {'os_storage_url': upload_info["swiftFileUrl"],
+             'os_auth_token': upload_info["token"]})
+        bucket = provider.object_store.get(container)
+        obj = bucket.create_object(location)
+        obj.upload_from_file(source)
