@@ -7,7 +7,7 @@ setup(name='python-genomespaceclient',
       author='GVL Project',
       author_email='help@genome.edu.au',
       url='http://python-genomespaceclient.readthedocs.org/',
-      install_requires=['requests', 'cloudbridge<0.3'],
+      install_requires=['requests', 'cloudbridge>=0.3,<0.4'],
       extras_require={
           'dev': ['tox', 'sphinx']
       },
