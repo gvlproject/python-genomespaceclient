@@ -187,6 +187,13 @@ class GenomeSpaceClient():
         return self._api_generic_request(
             requests.delete, genomespace_url, headers=headers)
 
+    def _infer_dest_filename(self, source, destination):
+        if destination.endswith("/") and not source.endswith("/"):
+            # Extract the filename from source and append it to destination
+            return destination + source.rsplit("/", 1)[-1]
+        else:
+            return destination
+
     def _internal_copy(self, source, destination):
         if not gs_glob.is_same_genomespace_server(source, destination):
             raise GSClientException(
@@ -196,14 +203,7 @@ class GenomeSpaceClient():
             self._internal_copy_single_file(f, destination)
 
     def _internal_copy_single_file(self, source, destination):
-        if source.endswith("/") and not destination.endswith("/"):
-            raise GSClientException(
-                "Source is a folder, and therefore, the destination must also"
-                " be a folder.")
-        if destination.endswith("/") and not source.endswith("/"):
-            # Extract the filename from source and append it to destination
-            destination += source.rsplit("/", 1)[-1]
-
+        destination = self._infer_dest_filename(source, destination)
         copy_source = source.replace(
             gs_glob.GENOMESPACE_URL_REGEX.match(source).group(1),
             "/")
@@ -241,6 +241,7 @@ class GenomeSpaceClient():
             self._upload_single_file(f, destination)
 
     def _upload_single_file(self, source, destination):
+        destination = self._infer_dest_filename(source, destination)
         upload_info = self._get_upload_info(destination)
         handler = storage_handlers.create_handler(
             upload_info.get("uploadType"))
@@ -251,6 +252,7 @@ class GenomeSpaceClient():
             self._download_single_file(f, destination)
 
     def _download_single_file(self, source, destination):
+        destination = self._infer_dest_filename(source, destination)
         download_info = self._get_download_info(source)
         storage_type = gs_glob.GENOMESPACE_URL_REGEX.match(
             source).group(4)
@@ -275,9 +277,10 @@ class GenomeSpaceClient():
 
         """
         log.debug("copy: %s -> %s", source, destination)
-        if gs_glob.has_magic(destination):
+        if source.endswith("/") and not destination.endswith("/"):
             raise GSClientException(
-                "Copy destination cannot have wildcards.")
+                "Source is a folder, and therefore, the destination must also"
+                " be a folder.")
 
         if gs_glob.is_genomespace_url(
                 source) and gs_glob.is_genomespace_url(destination):

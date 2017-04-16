@@ -4,6 +4,7 @@
 import fnmatch
 import os
 import re
+import urlparse
 
 
 GENOMESPACE_URL_REGEX = re.compile(
@@ -50,20 +51,25 @@ def gs_iglob(client, gs_path):
 
     Matches Python glob module characteristics.
     """
+    # Ignore query_str while globbing, but add it back before returning
+    query_str = urlparse.urlparse(gs_path).query
+    if query_str:
+        query_str = "?" + query_str
+        gs_path = gs_path.replace(query_str, "")
 
     dirname, basename = os.path.split(gs_path)
     if not is_genomespace_url(dirname):
         return
     if not has_magic(gs_path):
-        yield dirname
+        yield gs_path + query_str
         return
     if has_magic(dirname):
-        dirs = gs_iglob(dirname)
+        dirs = gs_iglob(client, dirname)
     else:
         dirs = [dirname]
     for dirname in dirs:
         for name in glob_in_dir(client, dirname, basename):
-            yield dirname + "/" + name
+            yield dirname + "/" + name + query_str
 
 
 def glob_in_dir(client, dirname, pattern):
