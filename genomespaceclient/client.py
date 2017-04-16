@@ -1,9 +1,11 @@
 import logging
 import re
-import fnmatch
 import glob
 
 from genomespaceclient import storage_handlers
+from genomespaceclient import gs_glob
+from genomespaceclient.exceptions import GSClientException
+
 import requests
 try:
     from urllib.parse import urlparse
@@ -12,10 +14,6 @@ except ImportError:
 
 
 log = logging.getLogger(__name__)
-
-
-class GSClientException(Exception):
-    pass
 
 
 class GSDataFormat(object):
@@ -86,11 +84,6 @@ class GenomeSpaceClient():
     """
     A simple GenomeSpace client
     """
-    GENOMESPACE_URL_REGEX = re.compile(
-        '(http[s]?://.*/datamanager/(v[0-9]+.[0-9]+/)?file/)(\w+)/(\w+)')
-
-    # Regex for shell wildcards
-    MAGIC_CHECK = re.compile('[*?[]')
 
     def __init__(self, username=None, password=None, token=None):
         """
@@ -194,72 +187,13 @@ class GenomeSpaceClient():
         return self._api_generic_request(
             requests.delete, genomespace_url, headers=headers)
 
-    def _is_genomespace_url(self, url):
-        return bool(GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(url))
-
-    def _is_same_genomespace_server(self, url1, url2):
-        match1 = GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(url1)
-        match2 = GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(url2)
-        return match1 and match2 and match1.group(1) == match2.group(1)
-
-    def _has_magic(self, s):
-        """
-        Checks whether a given string contains shell wildcard characters
-        """
-        return GenomeSpaceClient.MAGIC_CHECK.search(s) is not None
-
-    def _find_magic_match(self, s):
-        """
-        Returns the position of a wildcard
-        """
-        return GenomeSpaceClient.MAGIC_CHECK.search(s)
-
-    def _get_gs_wildcard_matches(self, source):
-        """
-        Get a list of all files matching a wildcard path.
-        E.g.
-        https://dm.genomespace.org/datamanager/v1.0/file/Home/folder1/*.txt
-
-        would return all files in folder1 with a txt extension such as:
-        https://dm.genomespace.org/datamanager/v1.0/file/Home/folder1/a.txt
-        https://dm.genomespace.org/datamanager/v1.0/file/Home/folder1/b.txt
-        """
-        # This base/rel path handling is required because genomespace_urls
-        # may or may not contain the API version in the URL.
-        source_base = GenomeSpaceClient.GENOMESPACE_URL_REGEX \
-            .match(source).group(1)
-        source_rel_path = source.replace(source_base, "")
-        # Find first matching wildcard
-        m = self._find_magic_match(source_rel_path)
-        # find the last recognised directory before wildcards
-        dir_pos = source_rel_path[:m.start()].rfind("/")
-        last_path = source_rel_path[:dir_pos]
-        # sanity check - make sure it's still a genomespace url
-        if not self._is_genomespace_url(source_base+last_path):
-            raise GSClientException("Invalid wildcard expression in path")
-        # list all files in the last recognised folder
-        candidate_list = self.list(source_base+last_path)
-        all_files = [elem['url'] for elem in candidate_list['contents']]
-        # get relative paths of all candidate files
-        all_files_rel = [elem.replace(
-            GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(elem).group(1),
-            "") for elem in all_files]
-        # filter files matching original wildcard expression
-        matching_files = fnmatch.filter(all_files_rel, source_rel_path)
-        # return fully constructed path to file
-        return [source_base+f for f in matching_files]
-
     def _internal_copy(self, source, destination):
-        if not self._is_same_genomespace_server(source, destination):
+        if not gs_glob.is_same_genomespace_server(source, destination):
             raise GSClientException(
                 "Copying between two different GenomeSpace servers is"
                 " currently unsupported.")
-        if self._has_magic(source):
-            matching_files = self._get_gs_wildcard_matches(source)
-            for f in matching_files:
-                self._internal_copy_single_file(f, destination)
-        else:
-            self._internal_copy_single_file(source, destination)
+        for f in gs_glob.gs_iglob(self, source):
+            self._internal_copy_single_file(f, destination)
 
     def _internal_copy_single_file(self, source, destination):
         if source.endswith("/") and not destination.endswith("/"):
@@ -271,7 +205,7 @@ class GenomeSpaceClient():
             destination += source.rsplit("/", 1)[-1]
 
         copy_source = source.replace(
-            GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(source).group(1),
+            gs_glob.GENOMESPACE_URL_REGEX.match(source).group(1),
             "/")
         return self._api_put_request(
             destination, headers={'x-gs-copy-source': copy_source})
@@ -291,7 +225,7 @@ class GenomeSpaceClient():
         # Therefore, keep checking the response headers till it
         # no longer matches an API URL.
         redirect_count = 0
-        while self._is_genomespace_url(response.headers['Location']):
+        while gs_glob.is_genomespace_url(response.headers['Location']):
             response = self._api_generic_request(requests.get,
                                                  response.headers['Location'],
                                                  allow_redirects=False)
@@ -303,11 +237,8 @@ class GenomeSpaceClient():
         return response.headers
 
     def _upload(self, source, destination):
-        if self._has_magic(source):
-            for f in glob.iglob(source):
-                self._upload_single_file(f, destination)
-        else:
-            self._upload_single_file(source, destination)
+        for f in glob.iglob(source):
+            self._upload_single_file(f, destination)
 
     def _upload_single_file(self, source, destination):
         upload_info = self._get_upload_info(destination)
@@ -316,16 +247,12 @@ class GenomeSpaceClient():
         handler.upload(source, upload_info)
 
     def _download(self, source, destination):
-        if self._has_magic(source):
-            matching_files = self._get_gs_wildcard_matches(source)
-            for f in matching_files:
-                self._download_single_file(f, destination)
-        else:
-            self._download_single_file(source, destination)
+        for f in gs_glob.gs_iglob(self, source):
+            self._download_single_file(f, destination)
 
     def _download_single_file(self, source, destination):
         download_info = self._get_download_info(source)
-        storage_type = GenomeSpaceClient.GENOMESPACE_URL_REGEX.match(
+        storage_type = gs_glob.GENOMESPACE_URL_REGEX.match(
             source).group(4)
         handler = storage_handlers.create_handler(storage_type)
         handler.download(download_info, destination)
@@ -348,18 +275,18 @@ class GenomeSpaceClient():
 
         """
         log.debug("copy: %s -> %s", source, destination)
-        if self._has_magic(destination):
+        if gs_glob.has_magic(destination):
             raise GSClientException(
                 "Copy destination cannot have wildcards.")
 
-        if self._is_genomespace_url(
-                source) and self._is_genomespace_url(destination):
+        if gs_glob.is_genomespace_url(
+                source) and gs_glob.is_genomespace_url(destination):
             self._internal_copy(source, destination)
-        elif self._is_genomespace_url(
-                source) and not self._is_genomespace_url(destination):
+        elif gs_glob.is_genomespace_url(
+                source) and not gs_glob.is_genomespace_url(destination):
             self._download(source, destination)
-        elif not self._is_genomespace_url(
-                source) and self._is_genomespace_url(destination):
+        elif not gs_glob.is_genomespace_url(
+                source) and gs_glob.is_genomespace_url(destination):
             self._upload(source, destination)
         else:
             raise GSClientException(
@@ -385,7 +312,7 @@ class GenomeSpaceClient():
                             file deleted.
         """
         log.debug("move: %s -> %s", source, destination)
-        if self._is_genomespace_url(source):
+        if gs_glob.is_genomespace_url(source):
             self.copy(source, destination)
             self.delete(source)
         else:
@@ -422,11 +349,7 @@ class GenomeSpaceClient():
         :param genomespace_url: GenomeSpace URL of file to delete.
         """
         log.debug("delete: %s", genomespace_url)
-        if self._has_magic(genomespace_url):
-            matching_files = self._get_gs_wildcard_matches(genomespace_url)
-            for f in matching_files:
-                self._delete_single_file(f)
-        else:
+        for f in gs_glob.gs_iglob(self, genomespace_url):
             self._delete_single_file(f)
 
     def _delete_single_file(self, genomespace_url):

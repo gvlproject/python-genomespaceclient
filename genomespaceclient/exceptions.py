@@ -1,0 +1,2 @@
+class GSClientException(Exception):
+    pass
