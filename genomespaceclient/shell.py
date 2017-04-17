@@ -33,10 +33,10 @@ def genomespace_list_files(args):
     client = get_client(args)
     folder_contents = client.list(args.folder_url)
 
-    for folder in folder_contents["contents"]:
+    for folder in folder_contents.contents:
         print("{isdir:<3s} {owner:<10s} {size:>10s} {last_modified:>26s}"
               " {name:s}".format(
-                  isdir="d" if folder["isDirectory"] else "_",
+                  isdir="d" if folder.isDirectory else "_",
                   owner=folder["owner"]["name"],
                   size=util.format_file_size(folder["size"]),
                   last_modified=folder.get("lastModified", ""),

@@ -1,12 +1,14 @@
 import logging
 import re
 import glob
+import os
 
 from genomespaceclient import storage_handlers
 from genomespaceclient import gs_glob
 from genomespaceclient.exceptions import GSClientException
 
 import requests
+from requests.exceptions import HTTPError
 try:
     from urllib.parse import urlparse
 except ImportError:
@@ -80,6 +82,24 @@ class GSFileMetadata(object):
         )
 
 
+class GSDirectoryListing(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_b
+    """
+
+    def __init__(self, contents, directory):
+        self.contents = contents
+        self.directory = directory
+
+    @staticmethod
+    def from_json(json_data):
+        return GSDirectoryListing(
+            [GSFileMetadata.from_json(content)
+             for content in json_data.get('contents', [])],
+            GSFileMetadata.from_json(json_data.get('directory'))
+        )
+
+
 class GenomeSpaceClient():
     """
     A simple GenomeSpace client
@@ -123,7 +143,7 @@ class GenomeSpaceClient():
         return {"gs-token": self.token}
 
     def _api_generic_request(self, request_func, genomespace_url, headers=None,
-                             allow_redirects=True):
+                             body=None, allow_redirects=True):
         """
         Makes a request to a GenomeSpace API endpoint, after adding some
         standard headers, including authentication headers.
@@ -142,6 +162,9 @@ class GenomeSpaceClient():
         :param headers: A dict containing additional headers to include with
                         the request.
 
+        :type body: :class:`bytes`
+        :param body: Optional data to send as the request body.
+
         :return: a JSON response after performing some sanity checks. Raises
                  an exception in case of an unexpected response.
         """
@@ -153,11 +176,13 @@ class GenomeSpaceClient():
                                 cookies=self._get_gs_auth_cookie(
                                     genomespace_url),
                                 headers=req_headers,
+                                data=body,
                                 allow_redirects=allow_redirects)
         response.raise_for_status()
         return response
 
-    def _api_json_request(self, request_func, genomespace_url, headers=None):
+    def _api_json_request(self, request_func, genomespace_url, headers=None,
+                          body=None):
         """
         Makes a request to a GenomeSpace API endpoint, after adding some
         standard headers, including authentication headers.
@@ -168,7 +193,8 @@ class GenomeSpaceClient():
         """
         response = self._api_generic_request(request_func,
                                              genomespace_url,
-                                             headers=headers)
+                                             headers=headers,
+                                             body=body)
         if "application/json" not in response.headers["content-type"]:
             raise GSClientException("Expected json content but received: %s" %
                                     (response.headers["content-type"],))
@@ -179,16 +205,16 @@ class GenomeSpaceClient():
         return self._api_json_request(
             requests.get, genomespace_url, headers=headers)
 
-    def _api_put_request(self, genomespace_url, headers=None):
+    def _api_put_request(self, genomespace_url, headers=None, body=None):
         return self._api_json_request(
-            requests.put, genomespace_url, headers=headers)
+            requests.put, genomespace_url, headers=headers, body=body)
 
-    def _api_delete_request(self, genomespace_url, headers=None):
+    def _api_delete_request(self, genomespace_url, headers=None, body=None):
         return self._api_generic_request(
             requests.delete, genomespace_url, headers=headers)
 
     def _infer_dest_filename(self, source, destination):
-        if destination.endswith("/") and not source.endswith("/"):
+        if self._is_dir_path(destination) and not self._is_dir_path(source):
             # Extract the filename from source and append it to destination
             return destination + source.rsplit("/", 1)[-1]
         else:
@@ -259,6 +285,11 @@ class GenomeSpaceClient():
         handler = storage_handlers.create_handler(storage_type)
         handler.download(download_info, destination)
 
+    def _is_dir_path(self, path):
+        if path and path.endswith("/"):
+            return True
+        return False
+
     def copy(self, source, destination):
         """
         Copies a file to/from/within GenomeSpace.
@@ -277,7 +308,7 @@ class GenomeSpaceClient():
 
         """
         log.debug("copy: %s -> %s", source, destination)
-        if source.endswith("/") and not destination.endswith("/"):
+        if self._is_dir_path(source) and not self.is_dir_path(destination):
             raise GSClientException(
                 "Source is a folder, and therefore, the destination must also"
                 " be a folder.")
@@ -338,7 +369,8 @@ class GenomeSpaceClient():
                  http://www.genomespace.org/support/api/restful-access-to-dm#appendix_b
         """
         log.debug("list: %s", genomespace_url)
-        return self._api_get_request(genomespace_url)
+        json_data = self._api_get_request(genomespace_url)
+        return GSDirectoryListing.from_json(json_data)
 
     def delete(self, genomespace_url):
         """
@@ -357,6 +389,42 @@ class GenomeSpaceClient():
 
     def _delete_single_file(self, genomespace_url):
         return self._api_delete_request(genomespace_url)
+
+    def isdir(self, genomespace_url):
+        try:
+            entries = self.list(genomespace_url)
+            if entries['directory'] and entries['directory']['isDirectory']:
+                return True
+        except HTTPError as e:
+            if e.status_code == 404:
+                return False
+        except GSClientException:
+            return False
+        return False
+
+    def mkdir(self, genomespace_url, create_path=True):
+        """
+        Creates a folder at a given location.
+
+        E.g.
+        client.mkdir("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/Folder1")
+
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL of file to delete.
+
+        :type create_path: :class:`boolean`
+        :param create_path: Create intermediate directories as required.
+        """
+        log.debug("mkdir: %s", genomespace_url)
+        if create_path:
+            dirname, _ = os.path.split(genomespace_url)
+            if not gs_glob.is_genomespace_url(dirname):
+                return
+            else:
+                self.mkdir(dirname, create_path)
+
+        return self._api_put_request(genomespace_url,
+                                     body='{"isDirectory": true}')
 
     def get_metadata(self, genomespace_url):
         """

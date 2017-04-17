@@ -10,8 +10,9 @@ import urlparse
 GENOMESPACE_URL_REGEX = re.compile(
     '(http[s]?://.*/datamanager/(v[0-9]+.[0-9]+/)?file/)(\w+)/(\w+)')
 
-# Regex for shell wildcards
-MAGIC_CHECK = re.compile('[*?[]')
+# Regex for shell wildcards. Identical to standard globs except for '?' which
+# cannot be used in a url since it denotes the start of a query string
+MAGIC_CHECK = re.compile('[*[]')
 
 
 def is_genomespace_url(url):
@@ -49,7 +50,8 @@ def gs_iglob(client, gs_path):
     https://dm.genomespace.org/datamanager/v1.0/file/Home/folder1/a.txt
     https://dm.genomespace.org/datamanager/v1.0/file/Home/folder1/b.txt
 
-    Matches Python glob module characteristics.
+    Matches Python glob module characteristics except for '?' which is
+    unsupported.
     """
     # Ignore query_str while globbing, but add it back before returning
     query_str = urlparse.urlparse(gs_path).query
@@ -75,5 +77,5 @@ def gs_iglob(client, gs_path):
 def glob_in_dir(client, dirname, pattern):
     print("Listing dir %s" % dirname)
     listing = client.list(dirname + "/")
-    names = [elem['name'] for elem in listing['contents']]
+    names = [entry.name for entry in listing.contents]
     return fnmatch.filter(names, pattern)
