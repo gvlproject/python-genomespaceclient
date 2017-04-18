@@ -39,6 +39,16 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         return (urljoin(helpers.get_remote_test_folder(), foldername) + "/",
                 foldername)
 
+    def _adjust_gs_swift_bug(self, name):
+        """
+        GenomeSpace Swift adds a / to the end of a foldername in metadata.
+        Remove that /
+        """
+        if name:
+            return name.replace("/", "")
+        else:
+            return name
+
     def test_list(self):
         client = helpers.get_genomespace_client()
         local_test_file = self._get_test_file()
@@ -56,7 +66,8 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         client.mkdir(remote_folder1)
         filelist = client.list(helpers.get_remote_test_folder())
         found_file = [f for f in filelist.contents
-                      if f.name == remote_name1 and f.isDirectory]
+                      if self._adjust_gs_swift_bug(f.name) == remote_name1 and
+                      f.isDirectory]
         self.assertTrue(len(found_file) == 1,
                         "Expected to find one created folder")
         client.delete(remote_folder1)
@@ -194,7 +205,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
 
         filelist = client.list(helpers.get_remote_test_folder())
         found_folder = [f for f in filelist.contents
-                        if f.name == remote_name]
+                        if self._adjust_gs_swift_bug(f.name) == remote_name]
         self.assertTrue(len(found_folder) == 0,
                         "Folder was found but should have been deleted")
 
