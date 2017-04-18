@@ -16,7 +16,7 @@ def get_client(args):
 
 def genomespace_copy_files(args):
     client = get_client(args)
-    client.copy(args.source, args.destination)
+    client.copy(args.source, args.destination, recurse=args.recurse)
 
 
 def genomespace_move_files(args):
@@ -26,7 +26,12 @@ def genomespace_move_files(args):
 
 def genomespace_delete_files(args):
     client = get_client(args)
-    client.delete(args.file_url)
+    client.delete(args.file_url, recurse=args.recurse)
+
+
+def genomespace_create_folder(args):
+    client = get_client(args)
+    client.mkdir(args.folder_url, create_path=args.path)
 
 
 def genomespace_list_files(args):
@@ -84,6 +89,10 @@ def process_args(args):
         "s3:test/hello.txt https://dmdev.genomespace.org/datamanager/v1.0/"
         "file/Home/s3:test/hello2.txt".format(parser.prog))
     file_copy_parser.add_argument(
+        '-R', '--recurse', action='store_true',
+        help="Copy files recursively.",
+        required=False, default=False)
+    file_copy_parser.add_argument(
         'source', type=str,
         help="Local path or GenomeSpace URI of source file.")
     file_copy_parser.add_argument(
@@ -116,13 +125,30 @@ def process_args(args):
     gs_list_parser.set_defaults(func=genomespace_list_files)
 
     # delete commands
-    gs_list_parser = subparsers.add_parser(
+    gs_rm_parser = subparsers.add_parser(
         'rm',
         help="Delete a GenomeSpace file or folder.")
-    gs_list_parser.add_argument(
+    gs_rm_parser.add_argument(
+        '-R', '--recurse', action='store_true',
+        help="Delete files recursively.",
+        required=False, default=False)
+    gs_rm_parser.add_argument(
         'file_url', type=str,
         help="GenomeSpace URI of file/folder to delete.")
-    gs_list_parser.set_defaults(func=genomespace_delete_files)
+    gs_rm_parser.set_defaults(func=genomespace_delete_files)
+
+    # mkdir commands
+    gs_mkdir_parser = subparsers.add_parser(
+        'mkdir',
+        help="Creates a remote GenomeSpace folder.")
+    gs_mkdir_parser.add_argument(
+        '-p', '--path', action='store_true',
+        help="Creates intermediate directories as required.",
+        required=False, default=False)
+    gs_mkdir_parser.add_argument(
+        'folder_url', type=str,
+        help="GenomeSpace URI of folder to create.")
+    gs_mkdir_parser.set_defaults(func=genomespace_create_folder)
 
     args = parser.parse_args(args[1:])
     return args

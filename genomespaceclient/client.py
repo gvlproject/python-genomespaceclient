@@ -367,7 +367,7 @@ class GenomeSpaceClient():
         else:
             return os.path.isdir(path)
 
-    def copy(self, source, destination, recurse=True):
+    def copy(self, source, destination, recurse=False):
         """
         Copies a file to/from/within GenomeSpace.
 
@@ -469,6 +469,15 @@ class GenomeSpaceClient():
         return self._api_delete_request(genomespace_url)
 
     def isdir(self, genomespace_url):
+        """
+        Returns True if a given genomespace_url is a directory
+
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL of file to delete.
+
+        :rtype:  :class:`bool`
+        :return: True if the url is a directory. False otherwise.
+        """
         try:
             md = self.get_metadata(genomespace_url)
             return md.isDirectory

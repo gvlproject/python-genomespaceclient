@@ -143,7 +143,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         found_file = [f for f in filelist.contents
                       if f.name == remote_name1]
         self.assertTrue(len(found_file) == 0,
-                        "File was found but should have been deleted")
+                        "File was found but should have been moved")
         self.assertTrue(filecmp.cmp(local_test_file, local_temp_file))
         os.remove(local_temp_file)
 
@@ -182,6 +182,21 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
                       if f.name == remote_name]
         self.assertTrue(len(found_file) == 0,
                         "File was found but should have been deleted")
+
+    def test_delete_folder(self):
+        client = helpers.get_genomespace_client()
+        local_test_folder = self._get_test_folder()
+        remote_folder, remote_name = self._get_remote_folder()
+
+        client.mkdir(remote_folder)
+        client.copy(local_test_folder, remote_folder, recurse=True)
+        client.delete(remote_folder, recurse=True)
+
+        filelist = client.list(helpers.get_remote_test_folder())
+        found_folder = [f for f in filelist.contents
+                        if f.name == remote_name]
+        self.assertTrue(len(found_folder) == 0,
+                        "Folder was found but should have been deleted")
 
     def test_delete_wildcard(self):
         client = helpers.get_genomespace_client()
