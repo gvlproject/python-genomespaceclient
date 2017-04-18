@@ -38,8 +38,14 @@ Commandline usage example
 
 .. code-block:: bash
 
-  # copy local file to remote location
-  genomespace -u <username> -p <password> cp /tmp/local_file.txt https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt
+  # Create remote folder, including all intermediate paths
+  genomespace -u <username> -p <password> mkdir -p https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/f1/f2/
+
+  # copy local files recursively to remote location
+  genomespace -u <username> -p <password> cp -R /tmp/ https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/
+
+  # copy local files matching pattern to remote location - note that paths with wildcards must be enclosed in quotes
+  genomespace -u <username> -p <password> cp '/tmp/*.txt' https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/
   
   # list remote files
   genomespace -u <username> -p <password> ls https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/
@@ -47,8 +53,8 @@ Commandline usage example
   # move remote file to new location
   genomespace -u <username> -p <password> mv https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt
   
-  # download remote file, with verbose output
-  genomespace -vvv -u <username> -p <password> mv https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt /tmp/new_local_file.txt
+  # download remote files matching pattern, with verbose output
+  genomespace -vvv -u <username> -p <password> mv https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/*.txt /tmp/
   
   # delete remote file
   genomespace -u <username> -p <password> rm https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt
@@ -62,11 +68,12 @@ Python usage example
   from genomespaceclient import GenomeSpaceClient
 
   client = GenomeSpaceClient(username="<username>", password="<password>")
-  client.copy("/tmp/local_file.txt", "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt")
+  client.mkdir("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/f1/f2". create_path=True)
+  client.copy("/tmp/", "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/", recurse=True)
   client.list("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/")
   client.move("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt", "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
-  client.copy("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt", "/tmp/new_local_file.txt")
-  client.delete("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+  client.copy("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/*.txt", "/tmp/")
+  client.delete("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/*.txt")
 
 
 Documentation
