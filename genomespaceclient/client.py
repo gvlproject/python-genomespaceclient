@@ -466,7 +466,15 @@ class GenomeSpaceClient():
                 for f in self.list(genomespace_url).contents:
                     self._delete_item(f.url, recurse=recurse)
 
-        return self._api_delete_request(genomespace_url)
+        try:
+            self._api_delete_request(genomespace_url)
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                # Folders become non-existent on openstack
+                # when the last file gets deleted, so ignore
+                pass
+            else:
+                raise e
 
     def isdir(self, genomespace_url):
         """
