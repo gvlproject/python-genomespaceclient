@@ -29,7 +29,7 @@ def is_same_genomespace_server(url1, url2):
 
 
 def gs_path_split(genomespace_url):
-    query_str = urlparse.urlparse(genomespace_url).query
+    query_str = urlparse(genomespace_url).query
     if query_str:
         query_str = "?" + query_str
         genomespace_url = genomespace_url.replace(query_str, "")
