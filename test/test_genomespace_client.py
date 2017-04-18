@@ -1,5 +1,6 @@
 import filecmp
 import os
+import shutil
 import tempfile
 from test import helpers
 import unittest
@@ -16,16 +17,27 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
     def _get_test_file(self):
         return os.path.join(os.path.dirname(__file__), 'fixtures/logo.png')
 
+    def _get_test_folder(self):
+        return os.path.join(os.path.dirname(__file__), 'fixtures/')
+
     def _get_temp_filename(self):
         return str(uuid.uuid4())
 
     def _get_temp_file(self):
         return os.path.join(tempfile.gettempdir(), self._get_temp_filename())
 
+    def _get_temp_folder(self):
+        return tempfile.mkdtemp() + "/"
+
     def _get_remote_file(self):
         filename = self._get_temp_filename() + ".txt"
         return (urljoin(helpers.get_remote_test_folder(), filename),
                 filename)
+
+    def _get_remote_folder(self):
+        foldername = self._get_temp_filename()
+        return (urljoin(helpers.get_remote_test_folder(), foldername) + "/",
+                foldername)
 
     def test_list(self):
         client = helpers.get_genomespace_client()
@@ -33,10 +45,26 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         remote_file_path, remote_name = self._get_remote_file()
         client.copy(local_test_file, remote_file_path)
         filelist = client.list(helpers.get_remote_test_folder())
-        found_file = [f for f in filelist["contents"]
-                      if f["name"] == remote_name]
+        found_file = [f for f in filelist.contents
+                      if f.name == remote_name]
         self.assertTrue(len(found_file) == 1, "Expected file not found")
         client.delete(remote_file_path)
+
+    def test_mkdir_rmdir(self):
+        client = helpers.get_genomespace_client()
+        remote_folder1, remote_name1 = self._get_remote_folder()
+        client.mkdir(remote_folder1)
+        filelist = client.list(helpers.get_remote_test_folder())
+        found_file = [f for f in filelist.contents
+                      if f.name == remote_name1 and f.isDirectory]
+        self.assertTrue(len(found_file) == 1,
+                        "Expected to find one created folder")
+        client.delete(remote_folder1)
+        filelist = client.list(helpers.get_remote_test_folder())
+        found_file = [f for f in filelist.contents
+                      if f.name == remote_name1]
+        self.assertTrue(len(found_file) == 0,
+                        "Expected folder to be deleted but it's not")
 
     def test_copy(self):
         client = helpers.get_genomespace_client()
@@ -51,11 +79,59 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         self.assertTrue(filecmp.cmp(local_test_file, local_temp_file))
         os.remove(local_temp_file)
 
+    def test_copy_wildcard(self):
+        client = helpers.get_genomespace_client()
+        local_test_folder = self._get_test_folder()
+        remote_folder, _ = self._get_remote_folder()
+        local_temp_folder = self._get_temp_folder()
+
+        client.mkdir(remote_folder)
+        client.copy(local_test_folder + "*", remote_folder)
+        client.copy(remote_folder + "*.txt", local_temp_folder)
+        client.delete(remote_folder, recurse=True)
+
+        dcmp = filecmp.dircmp(local_test_folder, local_temp_folder)
+        self.assertTrue(len(dcmp.same_files) == 2, "Should have copied 2"
+                        " identical text files")
+        self.assertTrue(len(dcmp.left_only) == 2, "Should have 1 extra file"
+                        " in local fixtures folder")
+        self.assertTrue(len(dcmp.right_only) == 0, "Should have no extra files"
+                        " in local temp folder")
+        shutil.rmtree(local_temp_folder)
+
+    def test_copy_folder(self):
+        client = helpers.get_genomespace_client()
+        local_test_folder = self._get_test_folder()
+        remote_folder, _ = self._get_remote_folder()
+        local_temp_folder = self._get_temp_folder()
+
+        client.mkdir(remote_folder)
+        client.copy(local_test_folder, remote_folder, recurse=True)
+        client.copy(remote_folder, local_temp_folder, recurse=True)
+        client.delete(remote_folder, recurse=True)
+
+        dcmp = filecmp.dircmp(local_test_folder, local_temp_folder)
+        self.assertTrue(len(dcmp.same_files) == 3, "Should have copied 3"
+                        " identical files")
+        self.assertTrue(len(dcmp.left_only) == 0, "Should have no extra files"
+                        " in local fixtures folder")
+        self.assertTrue(len(dcmp.right_only) == 0, "Should have no extra files"
+                        " in local temp folder")
+        self.assertTrue(len(dcmp.subdirs) == 1, "Should have exactly one"
+                        " subfolder")
+        self.assertTrue(len(dcmp.subdirs['folder1'].common) == 2, "Should have"
+                        " exactly 2 files in subfolder")
+        self.assertTrue(len(dcmp.subdirs['folder1'].left_only) == 0, "Should"
+                        " have no extra files in local subfolder")
+        self.assertTrue(len(dcmp.subdirs['folder1'].right_only) == 0, "Should"
+                        " have no extra files in copied subfolder")
+        shutil.rmtree(local_temp_folder)
+
     def test_move(self):
         client = helpers.get_genomespace_client()
         local_test_file = self._get_test_file()
         local_temp_file = self._get_temp_file()
-        remote_file1, _ = self._get_remote_file()
+        remote_file1, remote_name1 = self._get_remote_file()
         remote_file2, _ = self._get_remote_file()
 
         client.copy(local_test_file, remote_file1)
@@ -64,12 +140,36 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         client.delete(remote_file2)
 
         filelist = client.list(helpers.get_remote_test_folder())
-        found_file = [f for f in filelist["contents"]
-                      if f["name"] == remote_file1]
+        found_file = [f for f in filelist.contents
+                      if f.name == remote_name1]
         self.assertTrue(len(found_file) == 0,
                         "File was found but should have been deleted")
         self.assertTrue(filecmp.cmp(local_test_file, local_temp_file))
         os.remove(local_temp_file)
+
+    def test_move_wildcard(self):
+        client = helpers.get_genomespace_client()
+        local_test_folder = self._get_test_folder()
+        local_temp_folder = self._get_temp_folder()
+        remote_folder1, _ = self._get_remote_folder()
+        remote_folder2, _ = self._get_remote_folder()
+
+        client.mkdir(remote_folder1)
+        client.mkdir(remote_folder2)
+        client.copy(local_test_folder + "*", remote_folder1)
+        client.move(remote_folder1 + "*.txt", remote_folder2)
+        client.copy(remote_folder2 + "*", local_temp_folder)
+        client.delete(remote_folder1, recurse=True)
+        client.delete(remote_folder2, recurse=True)
+
+        dcmp = filecmp.dircmp(local_test_folder, local_temp_folder)
+        self.assertTrue(len(dcmp.same_files) == 2, "Should have copied 2"
+                        " identical text files")
+        self.assertTrue(len(dcmp.left_only) == 2, "Should have 2 extra files"
+                        " in local fixtures folder")
+        self.assertTrue(len(dcmp.right_only) == 0, "Should have no extra files"
+                        " in local temp folder")
+        shutil.rmtree(local_temp_folder)
 
     def test_delete(self):
         client = helpers.get_genomespace_client()
@@ -78,10 +178,25 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         client.copy(local_test_file, remote_file_path)
         client.delete(remote_file_path)
         filelist = client.list(helpers.get_remote_test_folder())
-        found_file = [f for f in filelist["contents"]
-                      if f["name"] == remote_name]
+        found_file = [f for f in filelist.contents
+                      if f.name == remote_name]
         self.assertTrue(len(found_file) == 0,
                         "File was found but should have been deleted")
+
+    def test_delete_wildcard(self):
+        client = helpers.get_genomespace_client()
+        local_test_folder = self._get_test_folder()
+        remote_folder, _ = self._get_remote_folder()
+
+        client.mkdir(remote_folder)
+        client.copy(local_test_folder + "*", remote_folder)
+        client.delete(remote_folder + "*.txt")
+        filelist = client.list(remote_folder)
+        found_file = [f for f in filelist.contents]
+        self.assertTrue(len(found_file) == 2,
+                        "Two items should be remaining but found: %s"
+                        % (found_file,))
+        client.delete(remote_folder, recurse=True)
 
     def test_get_metadata(self):
         client = helpers.get_genomespace_client()

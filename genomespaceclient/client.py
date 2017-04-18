@@ -1,3 +1,4 @@
+import errno
 import logging
 import re
 import glob
@@ -9,6 +10,7 @@ from genomespaceclient.exceptions import GSClientException
 
 import requests
 from requests.exceptions import HTTPError
+
 try:
     from urllib.parse import urlparse
 except ImportError:
@@ -213,23 +215,22 @@ class GenomeSpaceClient():
         return self._api_generic_request(
             requests.delete, genomespace_url, headers=headers)
 
-    def _infer_dest_filename(self, source, destination):
-        if self._is_dir_path(destination) and not self._is_dir_path(source):
-            # Extract the filename from source and append it to destination
-            return destination + source.rsplit("/", 1)[-1]
-        else:
-            return destination
-
     def _internal_copy(self, source, destination):
         if not gs_glob.is_same_genomespace_server(source, destination):
             raise GSClientException(
                 "Copying between two different GenomeSpace servers is"
                 " currently unsupported.")
+        dest_is_dir = self._is_dir_path(destination)
         for f in gs_glob.gs_iglob(self, source):
-            self._internal_copy_single_file(f, destination)
+            if dest_is_dir:
+                basename = os.path.basename(f)
+                dstname = destination + "/" + basename
+            else:
+                dstname = destination
+            # GS internal copies automatically handle files or folders
+            self._internal_copy_item(f, dstname)
 
-    def _internal_copy_single_file(self, source, destination):
-        destination = self._infer_dest_filename(source, destination)
+    def _internal_copy_item(self, source, destination):
         copy_source = source.replace(
             gs_glob.GENOMESPACE_URL_REGEX.match(source).group(1),
             "/")
@@ -262,23 +263,98 @@ class GenomeSpaceClient():
 
         return response.headers
 
-    def _upload(self, source, destination):
-        for f in glob.iglob(source):
-            self._upload_single_file(f, destination)
+    def _upload(self, source, destination, recurse=False):
+        dest_is_dir = self._is_dir_path(destination)
 
-    def _upload_single_file(self, source, destination):
-        destination = self._infer_dest_filename(source, destination)
+        for f in glob.iglob(source):
+            if dest_is_dir:
+                basename = os.path.basename(f)
+                dstname = destination + "/" + basename
+            else:
+                dstname = destination
+
+            if os.path.isdir(f):
+                if dest_is_dir:
+                    self._upload_tree(f, dstname, recurse)
+                else:
+                    raise GSClientException(
+                        "Source is a folder, and therefore, the destination"
+                        " must also be a folder.")
+            else:
+                self._upload_file(f, dstname)
+
+    def _upload_tree(self, source, destination, recurse):
+        contents = os.listdir(source)
+        self.mkdir(destination, create_path=True)
+        errors = []
+        for item in contents:
+            srcname = os.path.join(source, item)
+            dstname = destination + "/" + item
+            try:
+                if os.path.isdir(srcname) and recurse:
+                    self._upload_tree(srcname, dstname, recurse)
+                else:
+                    self._upload_file(srcname, dstname)
+            # catch the Error from the recursive upload so that we can
+            # continue with other files
+            except Exception as err:
+                errors.extend(err)
+        if errors:
+            raise GSClientException("Some errors occurred while uploading:"
+                                    " %s" % (errors,))
+
+    def _upload_file(self, source, destination):
         upload_info = self._get_upload_info(destination)
         handler = storage_handlers.create_handler(
             upload_info.get("uploadType"))
         handler.upload(source, upload_info)
 
-    def _download(self, source, destination):
-        for f in gs_glob.gs_iglob(self, source):
-            self._download_single_file(f, destination)
+    def _download(self, source, destination, recurse=False):
+        dest_is_dir = self._is_dir_path(destination)
 
-    def _download_single_file(self, source, destination):
-        destination = self._infer_dest_filename(source, destination)
+        for f in gs_glob.gs_iglob(self, source):
+            if dest_is_dir:
+                basename = os.path.basename(f)
+                dstname = destination + "/" + basename
+            else:
+                dstname = destination
+
+            if self.isdir(f):
+                if dest_is_dir:
+                    self._download_tree(f, dstname, recurse)
+                else:
+                    raise GSClientException(
+                        "Source is a folder, and therefore, the destination"
+                        " must also be a folder.")
+            else:
+                self._download_file(f, dstname)
+
+    def _download_tree(self, source, destination, recurse):
+        contents = self.list(source).contents
+        try:
+            os.makedirs(destination)
+        except OSError as e:
+            # be happy if someone already created the path
+            if e.errno != errno.EEXIST:
+                raise
+        errors = []
+        for item in contents:
+            srcname = source + "/" + item.name
+            dstname = os.path.join(destination, item.name)
+            try:
+                if self.isdir(srcname) and recurse:
+                    self._download_tree(srcname, dstname, recurse)
+                else:
+                    self._download_file(srcname, dstname)
+            # catch the Error from the recursive download so that we can
+            # continue with other files
+            except Exception as err:
+                errors.extend(err)
+        if errors:
+            raise GSClientException("Some errors occurred while downloading:"
+                                    " %s" % (errors,))
+
+    def _download_file(self, source, destination):
         download_info = self._get_download_info(source)
         storage_type = gs_glob.GENOMESPACE_URL_REGEX.match(
             source).group(4)
@@ -286,11 +362,12 @@ class GenomeSpaceClient():
         handler.download(download_info, destination)
 
     def _is_dir_path(self, path):
-        if path and path.endswith("/"):
-            return True
-        return False
+        if gs_glob.is_genomespace_url(path):
+            return self.isdir(path)
+        else:
+            return os.path.isdir(path)
 
-    def copy(self, source, destination):
+    def copy(self, source, destination, recurse=True):
         """
         Copies a file to/from/within GenomeSpace.
 
@@ -308,20 +385,16 @@ class GenomeSpaceClient():
 
         """
         log.debug("copy: %s -> %s", source, destination)
-        if self._is_dir_path(source) and not self.is_dir_path(destination):
-            raise GSClientException(
-                "Source is a folder, and therefore, the destination must also"
-                " be a folder.")
 
         if gs_glob.is_genomespace_url(
                 source) and gs_glob.is_genomespace_url(destination):
             self._internal_copy(source, destination)
         elif gs_glob.is_genomespace_url(
                 source) and not gs_glob.is_genomespace_url(destination):
-            self._download(source, destination)
+            self._download(source, destination, recurse=recurse)
         elif not gs_glob.is_genomespace_url(
                 source) and gs_glob.is_genomespace_url(destination):
-            self._upload(source, destination)
+            self._upload(source, destination, recurse=recurse)
         else:
             raise GSClientException(
                 "Either source or destination must be a valid GenomeSpace"
@@ -372,7 +445,7 @@ class GenomeSpaceClient():
         json_data = self._api_get_request(genomespace_url)
         return GSDirectoryListing.from_json(json_data)
 
-    def delete(self, genomespace_url):
+    def delete(self, genomespace_url, recurse=False):
         """
         Deletes a file within a GenomeSpace folder.
 
@@ -385,22 +458,27 @@ class GenomeSpaceClient():
         """
         log.debug("delete: %s", genomespace_url)
         for f in gs_glob.gs_iglob(self, genomespace_url):
-            self._delete_single_file(f)
+            self._delete_item(f, recurse)
 
-    def _delete_single_file(self, genomespace_url):
+    def _delete_item(self, genomespace_url, recurse=False):
+        if recurse:
+            if self.isdir(genomespace_url):
+                for f in self.list(genomespace_url).contents:
+                    self._delete_item(f.url, recurse=recurse)
+
         return self._api_delete_request(genomespace_url)
 
     def isdir(self, genomespace_url):
         try:
-            entries = self.list(genomespace_url)
-            if entries['directory'] and entries['directory']['isDirectory']:
-                return True
-        except HTTPError as e:
-            if e.status_code == 404:
-                return False
+            md = self.get_metadata(genomespace_url)
+            return md.isDirectory
         except GSClientException:
             return False
-        return False
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                return False
+            else:
+                raise e
 
     def mkdir(self, genomespace_url, create_path=True):
         """

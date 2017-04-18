@@ -37,10 +37,10 @@ def genomespace_list_files(args):
         print("{isdir:<3s} {owner:<10s} {size:>10s} {last_modified:>26s}"
               " {name:s}".format(
                   isdir="d" if folder.isDirectory else "_",
-                  owner=folder["owner"]["name"],
-                  size=util.format_file_size(folder["size"]),
-                  last_modified=folder.get("lastModified", ""),
-                  name=folder.get("name")))
+                  owner=folder.owner["name"],
+                  size=util.format_file_size(folder.size),
+                  last_modified=folder.lastModified,
+                  name=folder.name))
 
 
 def process_args(args):

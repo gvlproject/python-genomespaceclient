@@ -25,6 +25,16 @@ def is_same_genomespace_server(url1, url2):
     return match1 and match2 and match1.group(1) == match2.group(1)
 
 
+def gs_path_split(genomespace_url):
+    query_str = urlparse.urlparse(genomespace_url).query
+    if query_str:
+        query_str = "?" + query_str
+        genomespace_url = genomespace_url.replace(query_str, "")
+
+    dirname, basename = os.path.split(genomespace_url)
+    return dirname, basename, query_str
+
+
 def has_magic(s):
     """
     Checks whether a given string contains shell wildcard characters
@@ -54,28 +64,47 @@ def gs_iglob(client, gs_path):
     unsupported.
     """
     # Ignore query_str while globbing, but add it back before returning
-    query_str = urlparse.urlparse(gs_path).query
-    if query_str:
-        query_str = "?" + query_str
-        gs_path = gs_path.replace(query_str, "")
-
-    dirname, basename = os.path.split(gs_path)
+    dirname, basename, query_str = gs_path_split(gs_path)
     if not is_genomespace_url(dirname):
         return
     if not has_magic(gs_path):
-        yield gs_path + query_str
+        if basename:
+            yield gs_path
+        else:
+            # Patterns ending with a slash should match only directories
+            if client.isdir(dirname):
+                yield gs_path
         return
     if has_magic(dirname):
         dirs = gs_iglob(client, dirname)
     else:
         dirs = [dirname]
+
+    if has_magic(basename):
+        glob_in_dir = _glob1
+    else:
+        glob_in_dir = _glob0
     for dirname in dirs:
         for name in glob_in_dir(client, dirname, basename):
             yield dirname + "/" + name + query_str
 
 
-def glob_in_dir(client, dirname, pattern):
-    print("Listing dir %s" % dirname)
-    listing = client.list(dirname + "/")
-    names = [entry.name for entry in listing.contents]
-    return fnmatch.filter(names, pattern)
+# See python glob module implementation, which this is closely based on
+def _glob1(client, dirname, pattern):
+    if client.isdir(dirname):
+        listing = client.list(dirname + "/")
+        names = [entry.name for entry in listing.contents]
+        return fnmatch.filter(names, pattern)
+    else:
+        return []
+
+
+def _glob0(client, dirname, basename):
+    if basename == '':
+        # `os.path.split()` returns an empty basename for paths ending with a
+        # directory separator.  'q*x/' should match only directories.
+        if client.isdir(dirname):
+            return [basename]
+    else:
+        return [basename]
+    return []
