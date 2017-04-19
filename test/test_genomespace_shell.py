@@ -69,7 +69,9 @@ class GenomeSpaceShellTestCase(unittest.TestCase):
         self.assertTrue(remote_name in output,
                         "Expected folder not found. Received: %s" % (output,))
 
-        self._call_shell_command("rm", remote_folder)
+        # The recurse is needed to compensate for a bug in GenomeSpace swift
+        # which creates a .hidden file in each folder
+        self._call_shell_command("rm", "-R", remote_folder)
         output = self._call_shell_command(
             "ls", helpers.get_remote_test_folder())
         self.assertTrue(

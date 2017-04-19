@@ -70,10 +70,12 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
                       f.isDirectory]
         self.assertTrue(len(found_file) == 1,
                         "Expected to find one created folder")
-        client.delete(remote_folder1)
+        # The recurse is needed to compensate for a bug in GenomeSpace swift
+        # which creates a .hidden file in each folder
+        client.delete(remote_folder1, recurse=True)
         filelist = client.list(helpers.get_remote_test_folder())
         found_file = [f for f in filelist.contents
-                      if f.name == remote_name1]
+                      if self._adjust_gs_swift_bug(f.name) == remote_name1]
         self.assertTrue(len(found_file) == 0,
                         "Expected folder to be deleted but it's not")
 
