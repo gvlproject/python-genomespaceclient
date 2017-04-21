@@ -2,6 +2,9 @@ import filecmp
 import os
 import shutil
 import tempfile
+
+from test.helpers import get_test_username
+
 from test import helpers
 import unittest
 import uuid
@@ -229,7 +232,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
     def test_get_metadata(self):
         client = helpers.get_genomespace_client()
         local_test_file = self._get_test_file()
-        remote_file_path, _ = self._get_remote_file()
+        remote_file_path, remote_name = self._get_remote_file()
 
         # Set a specific data format
         remote_file_path += '?dataformat=http://www.genomespace.org' \
@@ -247,3 +250,29 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         self.assertIsInstance(
             metadata.availableDataFormats, list,
             "Expected metadata's available formats to be of type list")
+
+        owner = get_test_username()
+        self.assertTrue(
+            metadata.owner['name'] == owner,
+            "Expected file to owned by uploader")
+        acl_object = metadata.effectiveAcl.object
+        self.assertTrue(
+            acl_object.objectId.endswith(remote_name),
+            "Expected acl object path of %s to end with %s" % (
+                acl_object.objectId, remote_name))
+        self.assertTrue(
+            acl_object.objectType == 'DataManagerFileObject',
+            "Expected acl object type has changed?")
+        access_control_entries = metadata.effectiveAcl.accessControlEntries
+        self.assertTrue(
+            len(access_control_entries) == 2,
+            "Expected only two entries in ACL")
+        self.assertTrue(
+            access_control_entries[0].permission in ('W', 'R'),
+            "Expected owner to be able to read or write file?")
+        self.assertTrue(
+            access_control_entries[0].sid.type in ('User', 'Group'),
+            "Expected sid type to be either 'User' or 'Group'")
+        self.assertTrue(
+            access_control_entries[0].sid.name == owner,
+            "Expected sid name to be the owner")

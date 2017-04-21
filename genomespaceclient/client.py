@@ -44,6 +44,94 @@ class GSDataFormat(object):
             return None
 
 
+class GSSidObject(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#sid
+    """
+
+    def __init__(self, name, sid_type, sid_id=None):
+        self.name = name
+        self.type = sid_type
+        self.id = sid_id
+
+    @staticmethod
+    def from_json(json_data):
+        if json_data:
+            return GSSidObject(
+                json_data.get('name'),
+                json_data.get('type'),
+                json_data.get('id'),
+            )
+        else:
+            return None
+
+
+class GSAceObject(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#ace
+    """
+
+    def __init__(self, permission, sid, ace_id=None):
+        self.permission = permission
+        self.sid = sid
+        self.id = ace_id
+
+    @staticmethod
+    def from_json(json_data):
+        if json_data:
+            return GSAceObject(
+                json_data.get('permission'),
+                GSSidObject.from_json(json_data.get('sid')),
+                json_data.get('id'),
+            )
+        else:
+            return None
+
+
+class GSAclObject(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#acl
+    """
+
+    def __init__(self, objectId, objectType):
+        self.objectId = objectId
+        self.objectType = objectType
+
+    @staticmethod
+    def from_json(json_data):
+        if json_data:
+            return GSAclObject(
+                json_data.get('objectId'),
+                json_data.get('objectType'),
+            )
+        else:
+            return None
+
+
+class GSEffectiveAcl(object):
+    """
+    See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_f
+    """
+
+    def __init__(self, accessControlEntries, effective_acl_object,
+                 effective_acl_id=None):
+        self.accessControlEntries = accessControlEntries
+        self.object = effective_acl_object
+        self.id = effective_acl_id
+
+    @staticmethod
+    def from_json(json_data):
+        if json_data:
+            return GSEffectiveAcl(
+                [GSAceObject.from_json(entry) for entry in
+                 json_data.get('accessControlEntries')],
+                GSAclObject.from_json(json_data.get('object')),
+                json_data.get('id'),
+            )
+        else:
+            return None
+
+
 class GSFileMetadata(object):
     """
     See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_a
@@ -51,7 +139,7 @@ class GSFileMetadata(object):
 
     def __init__(self, name, path, url, parentUrl, size, owner, isDirectory,
                  isLink, targetPath, lastModified, dataFormat,
-                 availableDataFormats):
+                 availableDataFormats, effectiveAcl):
         self.name = name
         self.path = path
         self.url = url
@@ -64,6 +152,7 @@ class GSFileMetadata(object):
         self.lastModified = lastModified
         self.dataFormat = dataFormat
         self.availableDataFormats = availableDataFormats
+        self.effectiveAcl = effectiveAcl
 
     @staticmethod
     def from_json(json_data):
@@ -80,7 +169,8 @@ class GSFileMetadata(object):
             json_data.get('lastModified'),
             GSDataFormat.from_json(json_data.get('dataFormat')),
             [GSDataFormat.from_json(data_fmt)
-             for data_fmt in json_data.get('availableDataFormats', [])]
+             for data_fmt in json_data.get('availableDataFormats', [])],
+            GSEffectiveAcl.from_json(json_data.get('effectiveAcl'))
         )
 
 
