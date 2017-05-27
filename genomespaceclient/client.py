@@ -632,3 +632,31 @@ class GenomeSpaceClient():
                      r'\g<2>v1.0/filemetadata', genomespace_url)
         json_data = self._api_get_request(url)
         return GSFileMetadata.from_json(json_data)
+
+    def get_remaining_token_time(self, genomespace_url):
+        """
+        Gets the time to live for the gs-token if you have one.
+        If you don't have one, will return 0, as the non existent token has
+        no time left to live. See:
+        http://www.genomespace.org/support/api/restful-access-to-identity-server#get_token_time
+          
+        E.g. 
+        
+        client.get_remaining_token_time('https://genomespace.genome.edu.au/')
+        
+        :type genomespace_url: :class:`str`
+        :param genomespace_url: GenomeSpace URL.
+        
+        :rtype: :class:`int`
+        :return: the time the token has left to live in milliseconds.
+        """
+        if not self.token:
+            return 0
+        url_components = urlparse(genomespace_url)
+        location = '{uri.scheme}://{uri.netloc}' \
+                   '/identityServer/usermanagement/utility/token/remainingTime'
+        url = location.format(uri=url_components)
+        result = requests.get(url, cookies={"gs-token": self.token})
+        if result.status_code == requests.codes.ok:
+            return int(result.text)
+        return 0

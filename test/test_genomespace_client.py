@@ -276,3 +276,18 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         self.assertTrue(
             access_control_entries[0].sid.name == owner,
             "Expected sid name to be the owner")
+
+    def test_get_token_expiry(self):
+        client = helpers.get_genomespace_client()
+        genomespace_url = helpers.get_genomespace_url()
+        # no gs-token, as have not yet performed any actions
+        milliseconds_left = client.get_remaining_token_time(genomespace_url)
+        self.assertTrue(
+            milliseconds_left == 0,
+            "Expected client not yet logged in to have no token expiry time")
+        # now force a login and hence the client to get a gs-token
+        client.list(helpers.get_remote_test_folder())
+        milliseconds_left = client.get_remaining_token_time(genomespace_url)
+        self.assertTrue(
+            milliseconds_left > 0,
+            "Expected a logged in client to have a token expiry time")
