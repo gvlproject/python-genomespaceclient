@@ -9,6 +9,10 @@ import sys
 from genomespaceclient import GenomeSpaceClient
 from genomespaceclient import main
 
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 def get_test_username():
     return os.environ["GENOMESPACE_USERNAME"]
@@ -25,6 +29,16 @@ def get_genomespace_client():
 
 def get_remote_test_folder():
     return os.environ["GENOMESPACE_TEST_FOLDER"]
+
+
+def get_genomespace_url():
+    """
+    :return: the scheme and net location of the remote test folder in the form of
+             a url. E.g. https://genomespace.genome.edu.au
+    :rtype: :class:`str`
+    """
+    url_components = urlparse(get_remote_test_folder())
+    return '{uri.scheme}://{uri.netloc}'.format(uri=url_components)
 
 
 def run_python_script(command, args):
