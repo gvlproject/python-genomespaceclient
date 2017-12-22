@@ -1,10 +1,10 @@
 import filecmp
 import os
+import shutil
 import tempfile
-from test import helpers
 import unittest
 import uuid
-import shutil
+from test import helpers
 
 from genomespaceclient import main
 

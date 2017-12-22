@@ -1,19 +1,17 @@
-from __future__ import print_function
-
-from abc import ABCMeta, abstractmethod
 import logging
 import os
+from abc import ABCMeta, abstractmethod
 
 from cloudbridge.cloud.factory import CloudProviderFactory, ProviderList
-from genomespaceclient import util
-import requests
 
+from genomespaceclient import util
+
+import requests
 
 try:
     from urllib.parse import urlparse
 except ImportError:
     from urlparse import urlparse
-
 
 log = logging.getLogger(__name__)
 
@@ -73,8 +71,7 @@ class SimpleStorageHandler(StorageHandler):
                           " copied".format(
                               progress=util.format_file_size(bytes_copied),
                               total=util.format_file_size(int(total_length))
-                              if total_length else "unknown size"),
-                          end='\r')
+                              if total_length else "unknown size", end='\r'))
             if log.isEnabledFor(logging.INFO):
                 print("\n")
 

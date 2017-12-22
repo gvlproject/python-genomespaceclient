@@ -1,11 +1,11 @@
 import errno
-import logging
-import re
 import glob
+import logging
 import os
+import re
 
-from genomespaceclient import storage_handlers
 from genomespaceclient import gs_glob
+from genomespaceclient import storage_handlers
 from genomespaceclient.exceptions import GSClientException
 
 import requests
@@ -462,9 +462,9 @@ class GenomeSpaceClient():
         Copies a file to/from/within GenomeSpace.
 
         E.g.
-
-        client.copy("/tmp/local_file.txt",
-        "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt")
+        .. code-block:: python
+            client.copy("/tmp/local_file.txt",
+                    "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt")
 
         :type source: :class:`str`
         :param source: Local filename or GenomeSpace URL of source file.
@@ -495,9 +495,9 @@ class GenomeSpaceClient():
         Moves a file within GenomeSpace.
 
         E.g.
-
-        client.move("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt",
-        "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+        .. code-block:: python
+            client.move("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/hello.txt",
+                        "https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
 
         :type source: :str:
         :param source: GenomeSpace URL of source file. Cannot be a local file.
@@ -521,8 +521,8 @@ class GenomeSpaceClient():
         Returns a list of files within a GenomeSpace folder.
 
         E.g.
-
-        client.list("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/")
+        .. code-block:: python
+            client.list("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/")
 
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL of folder to list.
@@ -540,8 +540,8 @@ class GenomeSpaceClient():
         Deletes a file within a GenomeSpace folder.
 
         E.g.
-
-        client.delete("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+        .. code-block:: python
+            client.delete("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
 
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL of file to delete.
@@ -592,7 +592,8 @@ class GenomeSpaceClient():
         Creates a folder at a given location.
 
         E.g.
-        client.mkdir("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/Folder1")
+        .. code-block:: python
+            client.mkdir("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/Folder1")
 
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL of file to delete.
@@ -618,7 +619,9 @@ class GenomeSpaceClient():
 
         E.g.
 
-        client.get_metadata("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
+        .. code-block:: python
+
+            client.get_metadata("https://dm.genomespace.org/datamanager/v1.0/file/Home/MyBucket/world.txt")
 
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL of file to delete.
@@ -639,14 +642,16 @@ class GenomeSpaceClient():
         If you don't have one, will return 0, as the non existent token has
         no time left to live. See:
         http://www.genomespace.org/support/api/restful-access-to-identity-server#get_token_time
-          
-        E.g. 
-        
-        client.get_remaining_token_time('https://genomespace.genome.edu.au/')
-        
+
+        E.g.
+
+        .. code-block:: python
+
+            client.get_remaining_token_time('https://genomespace.genome.edu.au/')
+
         :type genomespace_url: :class:`str`
         :param genomespace_url: GenomeSpace URL.
-        
+
         :rtype: :class:`int`
         :return: the time the token has left to live in milliseconds.
         """

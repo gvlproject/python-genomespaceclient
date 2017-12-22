@@ -2,13 +2,13 @@ import filecmp
 import os
 import shutil
 import tempfile
-
-from test.helpers import get_test_username
-
-from test import helpers
 import unittest
 import uuid
-from genomespaceclient import GSFileMetadata, GSDataFormat
+from test import helpers
+from test.helpers import get_test_username
+
+from genomespaceclient import GSDataFormat, GSFileMetadata
+
 try:
     from urllib.parse import urljoin
 except ImportError:

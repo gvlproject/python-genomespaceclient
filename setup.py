@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(name='python-genomespaceclient',
       version="0.2",
@@ -9,7 +9,7 @@ setup(name='python-genomespaceclient',
       url='http://python-genomespaceclient.readthedocs.org/',
       install_requires=['cloudbridge>=0.3,<0.4', 'requests'],
       extras_require={
-          'dev': ['tox', 'sphinx']
+          'dev': ['tox', 'sphinx', 'flake8', 'flake8-import-order']
       },
       packages=find_packages(),
       license='MIT',

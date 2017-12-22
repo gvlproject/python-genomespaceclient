@@ -14,6 +14,7 @@ try:
 except ImportError:
     from urlparse import urlparse
 
+
 def get_test_username():
     return os.environ["GENOMESPACE_USERNAME"]
 
@@ -33,8 +34,8 @@ def get_remote_test_folder():
 
 def get_genomespace_url():
     """
-    :return: the scheme and net location of the remote test folder in the form of
-             a url. E.g. https://genomespace.genome.edu.au
+    :return: the scheme and net location of the remote test folder in the form
+             of a url. E.g. https://genomespace.genome.edu.au
     :rtype: :class:`str`
     """
     url_components = urlparse(get_remote_test_folder())

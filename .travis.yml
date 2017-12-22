@@ -1,23 +1,25 @@
 language: python
-python: 3.5
 os:
   - linux
-#  - osx
-env:
-  - TOX_ENV=py27-aws
-  - TOX_ENV=py27-openstack
-  - TOX_ENV=py35-aws
-  - TOX_ENV=py35-openstack
-  - TOX_ENV=pypy-aws
-  - TOX_ENV=pypy-openstack
 matrix:
   fast_finish: true
-  allow_failures:
-    - os: osx
+  include:
+    - python: 2.7
+      env: TOXENV=py27-aws
+    - python: 3.5
+      env: TOXENV=py35-aws
+    - python: pypy
+      env: TOXENV=pypy-aws
+    - python: 2.7
+      env: TOXENV=py27-openstack
+    - python: 3.5
+      env: TOXENV=py35-openstack
+    - python: pypy
+      env: TOXENV=pypy-openstack
 install:
   - pip install tox
   - pip install coveralls
 script:
-  - tox -e $TOX_ENV
+  - tox -e $TOXENV
 after_success:
   - coveralls
