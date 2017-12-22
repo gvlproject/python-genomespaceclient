@@ -25,10 +25,10 @@ class GSDataFormat(object):
     See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_c
     """
 
-    def __init__(self, name, url, fileExtension, description):
+    def __init__(self, name, url, file_extension, description):
         self.name = name
         self.url = url
-        self.fileExtension = fileExtension
+        self.file_extension = file_extension
         self.description = description
 
     @staticmethod
@@ -93,9 +93,9 @@ class GSAclObject(object):
     See: http://www.genomespace.org/support/api/restful-access-to-dm#acl
     """
 
-    def __init__(self, objectId, objectType):
-        self.objectId = objectId
-        self.objectType = objectType
+    def __init__(self, object_id, object_type):
+        self.object_id = object_id
+        self.object_type = object_type
 
     @staticmethod
     def from_json(json_data):
@@ -113,9 +113,9 @@ class GSEffectiveAcl(object):
     See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_f
     """
 
-    def __init__(self, accessControlEntries, effective_acl_object,
+    def __init__(self, access_control_entries, effective_acl_object,
                  effective_acl_id=None):
-        self.accessControlEntries = accessControlEntries
+        self.access_control_entries = access_control_entries
         self.object = effective_acl_object
         self.id = effective_acl_id
 
@@ -137,22 +137,22 @@ class GSFileMetadata(object):
     See: http://www.genomespace.org/support/api/restful-access-to-dm#appendix_a
     """
 
-    def __init__(self, name, path, url, parentUrl, size, owner, isDirectory,
-                 isLink, targetPath, lastModified, dataFormat,
-                 availableDataFormats, effectiveAcl):
+    def __init__(self, name, path, url, parentUrl, size, owner, is_directory,
+                 is_link, target_path, last_modified, data_format,
+                 available_data_formats, effective_acl):
         self.name = name
         self.path = path
         self.url = url
-        self.parentUrl = parentUrl
+        self.parent_url = parentUrl
         self.size = size
         self.owner = owner
-        self.isDirectory = isDirectory
-        self.isLink = isLink
-        self.targetPath = targetPath
-        self.lastModified = lastModified
-        self.dataFormat = dataFormat
-        self.availableDataFormats = availableDataFormats
-        self.effectiveAcl = effectiveAcl
+        self.is_directory = is_directory
+        self.is_link = is_link
+        self.target_path = target_path
+        self.last_modified = last_modified
+        self.data_format = data_format
+        self.available_data_formats = available_data_formats
+        self.effective_acl = effective_acl
 
     @staticmethod
     def from_json(json_data):
@@ -578,7 +578,7 @@ class GenomeSpaceClient():
         """
         try:
             md = self.get_metadata(genomespace_url)
-            return md.isDirectory
+            return md.is_directory
         except GSClientException:
             return False
         except HTTPError as e:

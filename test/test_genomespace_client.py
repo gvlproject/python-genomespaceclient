@@ -70,7 +70,7 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
         filelist = client.list(helpers.get_remote_test_folder())
         found_file = [f for f in filelist.contents
                       if self._adjust_gs_swift_bug(f.name) == remote_name1 and
-                      f.isDirectory]
+                      f.is_directory]
         self.assertTrue(len(found_file) == 1,
                         "Expected to find one created folder")
         # The recurse is needed to compensate for a bug in GenomeSpace swift
@@ -245,25 +245,25 @@ class GenomeSpaceClientTestCase(unittest.TestCase):
             metadata, GSFileMetadata,
             "Expected metadata to be of type GSFileMetadata")
         self.assertIsInstance(
-            metadata.dataFormat, GSDataFormat,
+            metadata.data_format, GSDataFormat,
             "Expected metadata's dataFormat to be of type GSDataFormat")
         self.assertIsInstance(
-            metadata.availableDataFormats, list,
+            metadata.available_data_formats, list,
             "Expected metadata's available formats to be of type list")
 
         owner = get_test_username()
         self.assertTrue(
             metadata.owner['name'] == owner,
             "Expected file to owned by uploader")
-        acl_object = metadata.effectiveAcl.object
+        acl_object = metadata.effective_acl.object
         self.assertTrue(
-            acl_object.objectId.endswith(remote_name),
+            acl_object.object_id.endswith(remote_name),
             "Expected acl object path of %s to end with %s" % (
-                acl_object.objectId, remote_name))
+                acl_object.object_id, remote_name))
         self.assertTrue(
-            acl_object.objectType == 'DataManagerFileObject',
+            acl_object.object_type == 'DataManagerFileObject',
             "Expected acl object type has changed?")
-        access_control_entries = metadata.effectiveAcl.accessControlEntries
+        access_control_entries = metadata.effective_acl.access_control_entries
         self.assertTrue(
             len(access_control_entries) == 2,
             "Expected only two entries in ACL")
