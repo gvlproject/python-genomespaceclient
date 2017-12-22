@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(name='python-genomespaceclient',
-      version="0.2",
+      version="1.0.0",
       description='Python bindings and commandline client to the GenomeSpace'
       ' API',
       author='GVL Project',
@@ -14,7 +14,7 @@ setup(name='python-genomespaceclient',
       packages=find_packages(),
       license='MIT',
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Environment :: Console',
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
