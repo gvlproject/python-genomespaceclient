@@ -85,8 +85,8 @@ class S3StorageHandler(SimpleStorageHandler):
             {'aws_access_key': creds["accessKey"],
              'aws_secret_key': creds["secretKey"],
              'aws_session_token': creds["sessionToken"]})
-        bucket = provider.object_store.get(upload_info['s3BucketName'])
-        obj = bucket.create_object(upload_info['s3ObjectKey'])
+        bucket = provider.storage.buckets.get(upload_info['s3BucketName'])
+        obj = bucket.objects.create(upload_info['s3ObjectKey'])
         obj.upload_from_file(source)
 
 
@@ -99,6 +99,6 @@ class SwiftStorageHandler(SimpleStorageHandler):
             ProviderList.OPENSTACK,
             {'os_storage_url': upload_info["swiftFileUrl"],
              'os_auth_token': upload_info["token"]})
-        bucket = provider.object_store.get(container)
-        obj = bucket.create_object(location)
+        bucket = provider.storage.buckets.get(container)
+        obj = bucket.objects.create(location)
         obj.upload_from_file(source)
