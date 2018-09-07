@@ -1,3 +1,8 @@
+1.1.0 - September 7, 2018. (sha 3edab098e4be00fdcfd6d11c5e1ca70f6be5a5ef)
+-------
+* Support for universal wheels (thanks to @nsoranzo)
+* Upgraded to cloudbridge v1.0.1
+
 1.0.0 - Dec 22, 2017. (sha 914a98e68fbeec47e994d318082c126d2e494c18)
 -------
 * ACL object info can now be retrieved (thanks to @MartinPaulo)
