@@ -1,13 +1,13 @@
 from setuptools import find_packages, setup
 
 setup(name='python-genomespaceclient',
-      version="1.1.0",
+      version="1.2.0",
       description='Python bindings and commandline client to the GenomeSpace'
       ' API',
       author='GVL Project',
       author_email='help@genome.edu.au',
       url='http://python-genomespaceclient.readthedocs.org/',
-      install_requires=['cloudbridge>=1.0.1', 'requests'],
+      install_requires=['cloudbridge>=2.0.0', 'requests'],
       extras_require={
           'dev': ['tox', 'sphinx', 'flake8', 'flake8-import-order']
       },

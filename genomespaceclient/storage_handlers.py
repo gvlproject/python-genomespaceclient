@@ -2,7 +2,7 @@ import logging
 import os
 from abc import ABCMeta, abstractmethod
 
-from cloudbridge.cloud.factory import CloudProviderFactory, ProviderList
+from cloudbridge.factory import CloudProviderFactory, ProviderList
 
 from genomespaceclient import util
 
