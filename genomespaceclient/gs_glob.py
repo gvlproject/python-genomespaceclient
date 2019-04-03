@@ -11,7 +11,7 @@ except ImportError:
 
 
 GENOMESPACE_URL_REGEX = re.compile(
-    '(http[s]?://.*/datamanager/(v[0-9]+.[0-9]+/)?file/)(\w+)/(\w+)')
+    r'(http[s]?://.*/datamanager/(v[0-9]+.[0-9]+/)?file/)(\w+)/(\w+)')
 
 # Regex for shell wildcards. Identical to standard globs except for '?' which
 # cannot be used in a url since it denotes the start of a query string
