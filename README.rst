@@ -1,3 +1,5 @@
+*The GenomeSpace Project has been discontinued*
+
 Python bindings and commandline client to the GenomeSpace API
 =============================================================
 
